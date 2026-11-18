@@ -297,7 +297,7 @@ def p63_1(app, w, cfg_base):
     rien = {k for k, c in w._indices_page._index_cards.items() if c.property("checked")}
     w._apply_config(cfg_base)
     pump(app)
-    ok = defauts == {"MNT", "SVF", "LD"} and not rien
+    ok = not defauts and not rien
     verdict("63.1", ok, f"défauts d'un profil neuf {sorted(defauts)} ; configuration sans produit : cochés {sorted(rien) or 'aucun'}")
 
 
@@ -307,7 +307,7 @@ def p63_2(app, w):
     w._goto_step(2)
     pump(app)
     tous = labels(page)
-    titres = [t for t in ("Recommandé pour commencer", "Autres indices de visualisation", "Qualité de la donnée") if t in tous]
+    titres = [t for t in ("MNT et qualité de la donnée", "Indices de visualisation") if t in tous]
     rvt = [k for k, c in page._index_cards.items() if c.parent() is not None and page._rvt_card.isAncestorOf(c)]
     page.set_mode("existing_mnt")
     pump(app)
@@ -317,8 +317,8 @@ def p63_2(app, w):
     banniere = page._mode_banner.text()
     page.set_mode("ign_laz")
     pump(app)
-    ok = len(titres) == 3 and len(rvt) == 10 and qual_cachee and "sans objet" in banniere and "indices de visualisation" in banniere
-    verdict("63.2", ok, f"sections {titres} ; autres indices : {len(rvt)} cartes (12 indices moins SVF et LD recommandés) ; qualité masquée en MNT existant {qual_cachee} ; bandeau existing_rvt « {banniere[:90]} »")
+    ok = len(titres) == 2 and len(rvt) == 12 and qual_cachee and "sans objet" in banniere and "indices de visualisation" in banniere
+    verdict("63.2", ok, f"sections {titres} ; indices : {len(rvt)} cartes ; qualité masquée en MNT existant {qual_cachee} ; bandeau existing_rvt « {banniere[:90]} »")
 
 
 @point("63.3")
@@ -1123,9 +1123,11 @@ def p67_3(app, w, r2):
 def p67_4(app, w):
     w._goto_step(5)
     pump(app)
-    w._run_view.revoir_resultats.emit()
+    from qgis.PyQt.QtWidgets import QPushButton
+    absent = not any(b.text() == "Revoir les résultats" for b in w._run_view.findChildren(QPushButton))
+    w._goto_step(6)
     pump(app)
-    verdict("67.4", w._current_step == 6, f"« Revoir les résultats » → étape {w._current_step} (traitement en tête : au traitement réel)")
+    verdict("67.4", absent and w._current_step == 6, f"bouton « Revoir les résultats » absent de l'étape 5 : {absent} ; rail → étape {w._current_step}")
 
 
 # ----------------------------------------------------------------------------------------- § 68, § 70
@@ -1150,7 +1152,7 @@ def p68_6(app, w, recette):
         tab.close()
     finally:
         vt.DEFAULT_CATALOGUE, vt.LOCAL_CATALOGUE = d1, d2
-    ok = texte.startswith("Aucun catalogue n'est installé sur ce poste") and "Aide › Consulter les flux" in texte and actif and cle == "consulter-les-flux" and "injoignable" not in texte
+    ok = texte.startswith("Aucun catalogue n'est installé sur ce poste") and "Aide › Catalogue des flux" in texte and actif and cle == "consulter-les-flux" and "injoignable" not in texte
     verdict("68.6", ok, f"message « {re.sub('<[^>]+>', '', texte)[:90]} » ; Actualiser actif {actif} ; lien → chapitre {cle}")
 
 
@@ -1237,7 +1239,7 @@ def main(argv=None) -> int:
     for etape in (lambda: p63_1(app, w, cfg_base), lambda: p63_2(app, w), lambda: p63_3(app, w), lambda: p63_4(app, w),
                   lambda: p63_5(app, w), lambda: p63_6(app, w), lambda: p63_7(app, w)):
         etape()
-    p_manuel("63.8", "etape-2-produits", ["Recommandé pour commencer", "ⓘ", "▸ Réglages", "Marge entre dalles", "Comparer les produits"])
+    p_manuel("63.8", "etape-2-produits", ["MNT et qualité de la donnée", "ⓘ", "▸ Réglages", "Marge entre dalles", "Comparer les produits"])
     w._apply_config(cfg_base)
     pump(app)
     for fn in (p64_1, p64_2, p64_3, p64_4, p64_5, p64_6, p64_7, p64_8, p64_9, p64_10):
@@ -1280,7 +1282,7 @@ def main(argv=None) -> int:
         p_manuel("68.7", "consulter-les-flux", ["catalogue", "Afficher dans QGIS", "Tout retirer", "Voir dans QGIS"])
     else:
         for n in ("68.6", "68.7"):
-            verdict(n, None, "onglet « Consulter les flux » masqué (VISUALISATION_TAB_ENABLED faux depuis la 0.18.1)")
+            verdict(n, None, "onglet « Catalogue des flux » masqué (VISUALISATION_TAB_ENABLED faux depuis la 0.18.1)")
     for n in ("68.1", "68.2", "68.3", "68.4", "68.5"):
         verdict(n, None, "traitement réel ou catalogue : à jouer en séance")
     p70_1(app, w)

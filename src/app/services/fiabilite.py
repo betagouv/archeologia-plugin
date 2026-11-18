@@ -351,11 +351,20 @@ def maptip_html(cats: Sequence[Categorie], modele: str, structure: str = "") -> 
     fusion = ("if(coalesce(attribute($currentfeature, 'n_membres'), 1) > 1, "
               "concat('Polygone fusionné de ', attribute($currentfeature, 'n_membres'), "
               "' fragments, le plus sûr à ', round(attribute($currentfeature, 'conf_max'), 2), '<br>'), NULL)")
+    # Contexte moderne (2026-11-18) : l'objet grisé dit pourquoi, et d'après quelle donnée ;
+    # ``contexte_info`` (simple information) aussi. NULL si les champs manquent.
+    contexte = ("concat(if(coalesce(attribute($currentfeature, 'contexte_moderne'), '') <> '', "
+                "concat('<b>Contexte moderne</b> : ', attribute($currentfeature, 'contexte_moderne'), "
+                "if(coalesce(attribute($currentfeature, 'contexte_source'), '') <> '', "
+                "concat(' (', attribute($currentfeature, 'contexte_source'), ')'), ''), '<br>'), ''), "
+                "if(coalesce(attribute($currentfeature, 'contexte_info'), '') <> '', "
+                "concat('À noter : ', attribute($currentfeature, 'contexte_info'), '<br>'), ''))")
     return (
         "<div style=\"font-family:sans-serif;font-size:12px;max-width:340px\">"
         f"<b>{titre}</b> — fiabilité <b>[% \"{CHAMP_LABEL}\" %]</b><br>"
         f"[% {cas} %]<br>"
         f"[% {fusion} %]"
+        f"[% {contexte} %]"
         f"<span style=\"color:#666\">Score brut [% round(\"confidence\", 2) %] · {modele}</span>"
         "</div>"
     )
@@ -432,6 +441,46 @@ def write_sidecar(gpkg_path: Any, layer_name: str, entree: Mapping[str, Any]) ->
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     return p
+
+
+def recompter_ecartes(gpkg_path: Any) -> None:
+    """Écrit dans le sidecar, à côté des ``effectifs``, les ``ecartes`` : par niveau, le nombre de détections
+    que le contexte moderne a grisées (champ ``contexte_moderne`` rempli). Le bilan « Par où commencer » les
+    montre à part (2026-11-12). Appelé après le croisement ; champ absent → la clé est retirée ; lecture
+    sqlite3 seule, GeoPackage illisible → sidecar laissé tel quel."""
+    import sqlite3
+
+    p = sidecar_path(gpkg_path)
+    if not p.is_file() or not Path(gpkg_path).is_file():
+        return
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        con = sqlite3.connect(f"file:{Path(gpkg_path).as_posix()}?mode=ro", uri=True)
+    except (OSError, ValueError, sqlite3.Error):
+        return
+    if not isinstance(data, dict):
+        con.close()
+        return
+    try:
+        couches = {str(r[0]) for r in con.execute(
+            "SELECT table_name FROM gpkg_contents WHERE data_type = 'features'").fetchall()}
+        for couche, entree in data.items():
+            if not isinstance(entree, dict) or "effectifs" not in entree:
+                continue
+            entree.pop("ecartes", None)
+            if couche not in couches:
+                continue
+            if "contexte_moderne" not in {r[1] for r in con.execute(f'PRAGMA table_info("{couche}")')}:
+                continue
+            entree["ecartes"] = {str(k): int(n) for k, n in con.execute(
+                f'SELECT "{CHAMP_LABEL}", COUNT(*) FROM "{couche}" '
+                f"WHERE coalesce(\"contexte_moderne\", '') <> '' GROUP BY \"{CHAMP_LABEL}\"").fetchall()
+                if k is not None and str(k)}
+    except sqlite3.Error:
+        return
+    finally:
+        con.close()
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def recompter_effectifs(gpkg_path: Any) -> None:

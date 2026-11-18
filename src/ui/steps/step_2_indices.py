@@ -6,9 +6,8 @@ est verrouillé tant qu'un indice RVT est coché (clic → toast explicatif). Se
 le mode de données, les sections déjà fournies sont masquées (existing_mnt /
 existing_rvt). La logique pure vient de :mod:`app.services.indices_model`.
 
-Trois sections (interface rationalisée, 2026-10-24) : « Recommandé pour commencer »
-(MNT, SVF, LD, cochés d'avance), « Autres indices de visualisation », « Qualité de la
-donnée ». Chaque carte = cocher + « ⓘ » (la fiche), et, une fois cochée, un lien
+Deux sections (2026-11-12) : « MNT et qualité de la donnée » (MNT, densité, couverture)
+puis « Indices de visualisation » ; rien n'est coché d'avance. Chaque carte = cocher + « ⓘ » (la fiche), et, une fois cochée, un lien
 « ▸ Réglages (n) » qui déplie SES réglages dans la carte : plus de vue séparée à
 onglets. La marge entre dalles est une carte de la page. Les réglages sont
 persistés dans ``rvt_params`` et ``processing`` du config (consommés tels quels
@@ -54,11 +53,9 @@ from ...app.services.indices_model import (
     all_products,
     count_selected,
     default_products,
-    other_rvt_keys,
+    mnt_et_qualite_keys,
     product,
     products_unavailable_in_mode,
-    quality_keys,
-    recommended_keys,
     requires_mnt,
     rvt_keys,
     toggle,
@@ -320,13 +317,13 @@ class IndicesPage(QWidget):
         self._mode_banner.setVisible(False)
         root.addWidget(self._mode_banner)
 
-        # ── Trois sections, un seul gabarit de carte ──
-        self._reco_card, rv = build_card("Recommandé pour commencer", "1")
-        rv.addLayout(self._grille(recommended_keys(), 3))
-        root.addWidget(self._reco_card)
+        # ── Deux sections, un seul gabarit de carte ──
+        self._base_card, rv = build_card("MNT et qualité de la donnée", "1")
+        rv.addLayout(self._grille(mnt_et_qualite_keys(), 3))
+        root.addWidget(self._base_card)
 
-        self._rvt_card, av = build_card("Autres indices de visualisation", "2")
-        av.addLayout(self._grille(other_rvt_keys(), 3))
+        self._rvt_card, av = build_card("Indices de visualisation", "2")
+        av.addLayout(self._grille(rvt_keys(), 3))
         footer = QHBoxLayout()
         self._count_label = QLabel("")
         self._count_label.setObjectName("WizardPageSub")
@@ -334,10 +331,6 @@ class IndicesPage(QWidget):
         footer.addStretch(1)
         av.addLayout(footer)
         root.addWidget(self._rvt_card)
-
-        self._quality_card, qv = build_card("Qualité de la donnée", "3")
-        qv.addLayout(self._grille(quality_keys(), 3))
-        root.addWidget(self._quality_card)
 
         # ── Marge entre dalles : une carte de la page, avec son diagnostic ──
         root.addWidget(self._marge_card)
@@ -1017,9 +1010,7 @@ class IndicesPage(QWidget):
         laz = mode in ("ign_laz", "local_laz")
         # Depuis un MNT existant, le relief nu est la donnée d'entrée et la qualité
         # de la donnée n'existe pas ; depuis des images existantes, rien à calculer.
-        self._index_cards["MNT"].setVisible(laz)
-        self._quality_card.setVisible(laz)
-        self._reco_card.setVisible(mode != "existing_rvt")
+        self._base_card.setVisible(laz)
         self._rvt_card.setVisible(mode != "existing_rvt")
         self._marge_card.setVisible(mode != "existing_rvt")
         if mode == "existing_mnt":

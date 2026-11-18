@@ -632,6 +632,52 @@ def rvt_params_des_produits(rvt_params: Optional[Dict[str, Any]], produits: List
     return {k: v for k, v in rvt_params.items() if k not in sections or sections[k] in produits}
 
 
+def _contexte_moderne(det_dir, cv_cfg, cv_stats, outcome, crs, reporter, narrator, cancel_check):
+    """Croise et marque les détections ; ``None`` quand l'option est coupée ou sans objet. Jamais bloquant :
+    une erreur (réseau, fichier verrouillé) est dite dans le journal et les GeoPackages restent tels quels."""
+    if not (cv_cfg or {}).get("contexte_moderne") or outcome != "success" or not Path(det_dir).is_dir():
+        return None
+    if moteur_detection(cv_stats)[0] == "none":
+        return None
+    from . import contexte_croisement, contexte_gpkg
+
+    try:
+        try:
+            from ...pipeline.ign.downloader import _get_proxy_config
+        except ImportError:  # standalone (tests)
+            from pipeline.ign.downloader import _get_proxy_config  # type: ignore[no-redef]
+        proxies = _get_proxy_config(log=lambda m: None)
+    except Exception:  # noqa: BLE001 — sans proxy lisible, on tente en direct
+        proxies = {}
+    proxy = proxies.get("https") or proxies.get("http")
+
+    def lire_json(url):
+        return contexte_croisement.lire_json_urllib(url, proxy=proxy)
+
+    try:
+        bilan = contexte_gpkg.marquer(det_dir, lire_json, crs=crs, annule=cancel_check or (lambda: False),
+                                      journal=reporter.info)
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        bilan = contexte_gpkg.Bilan(motif=f"Contexte moderne non vérifié ({type(e).__name__} : {e}).")
+    narrator.contexte_moderne(bilan.phrase, bilan.motif != "")
+    return bilan
+
+
+def _doublons_structures(det_dir, outcome, narrator):
+    """Marque les objets détectés sous deux structures (champ ``aussi_vu_comme``) ; jamais bloquant."""
+    if outcome != "success" or not Path(det_dir).is_dir():
+        return
+    try:
+        from . import doublons_structures
+
+        n = doublons_structures.marquer(det_dir)
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        narrator.contexte_moderne(f"Objets détectés sous deux structures non marqués ({type(e).__name__} : {e}).", True)
+        return
+    if n:
+        narrator.doublons_structures(n)
+
+
 def finalize_pipeline(
     *,
     output_dir: Path,
@@ -651,6 +697,7 @@ def finalize_pipeline(
     pdal_version: str = "",
     fusion: str = "",
     crs: str = "EPSG:2154",
+    cancel_check: Optional[Callable[[], bool]] = None,
 ) -> bool:
     """
     Finalisation commune à tous les runners :
@@ -744,6 +791,13 @@ def finalize_pipeline(
     except Exception as _e:  # jamais bloquant pour la finalisation
         log(f"Purge des variantes périmées ignorée ({_e})")
     shapefile_paths: List[str] = _collect_shapefiles(det_dir)
+
+    # 2b. Contexte moderne (2026-11-11) : chaque détection est croisée avec les bâtiments et les surfaces
+    # en eau de la BD TOPO, et marquée — jamais supprimée. Ici, avant le bilan, la trace, le rapport et
+    # le chargement des couches : les GeoPackages sont définitifs et aucune couche QGIS ne les tient.
+    contexte = _contexte_moderne(det_dir, cv_cfg, cv_stats, outcome, crs, reporter, narrator, cancel_check)
+    # 2c. Un même objet sous deux structures (2026-11-12) : les deux sont gardés, chacun nomme l'autre.
+    _doublons_structures(det_dir, outcome, narrator)
 
     # 3. Les couleurs ne sont plus pré-calculées ici : chaque classe dérive sa
     # couleur de son nom via le registre partagé (pipeline.cv.class_color_registry),
@@ -860,6 +914,8 @@ def finalize_pipeline(
             },
             "ui_config": _ui_config_trace(ui_config),
         }
+        if contexte is not None:
+            meta["contexte_moderne"] = contexte.en_dict()
         # 4b. Rapport de traitement (2026-10-08) : HTML à la racine du dossier de
         # sortie, ouvert d'un clic depuis la vue d'exécution — tout vient du run
         # (journal, métadonnées, bilan, durées chronométrées) + une vignette GDAL.

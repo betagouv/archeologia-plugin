@@ -47,8 +47,8 @@ def test_six_etapes_dans_le_rail():
     src = WIZARD.read_text(encoding="utf-8")
     assert src.count('{"label": ') == 6 and '{"label": "Résultats"' in src
     assert "STEP_RESULTATS = 6" in src and "ResultatsPage(" in src
-    assert "revoir_resultats.connect(" in src
-    assert 'QPushButton("Revoir les résultats")' in RUN_VIEW.read_text(encoding="utf-8")
+    # « Revoir les résultats » retiré de la vue du traitement (2026-11-12) : l'étape 6 se rejoint par le rail.
+    assert "revoir_resultats" not in src and "Revoir les résultats" not in RUN_VIEW.read_text(encoding="utf-8")
     assert "class ResultatsPage" in PAGE6.read_text(encoding="utf-8")
     from src.app.services.aide import CHAPITRE_PAR_ETAPE
     assert CHAPITRE_PAR_ETAPE[6] == "resultats"
@@ -61,11 +61,11 @@ def test_relancer_passe_par_apply_config():
 
 
 def test_selection_sur_carte_sans_minimiser():
-    """H-02 : choisir les dalles sur la carte ne réduit plus l'assistant ; il se range contre
-    le bord de l'écran et reprend sa place à la fin."""
+    """Choisir les dalles sur la carte ne réduit pas l'assistant et ne change plus sa taille
+    (2026-11-12) : il est masqué derrière la barrette, puis remontré tel quel."""
     src = STEP1.read_text(encoding="utf-8")
-    assert "showMinimized" not in src
-    assert "_geometrie_avant_carte" in src and "availableGeometry()" in src
+    assert "showMinimized(" not in src and "setGeometry(" not in src and "_geometrie_avant_carte" not in src
+    assert 'masquer_vers_barrette("Choix des dalles sur la carte")' in src and "win.show()" in src
 
 
 def test_l_etape_4_recoit_les_avertissements_de_configuration():

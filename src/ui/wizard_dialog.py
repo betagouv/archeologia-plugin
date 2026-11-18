@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from qgis.PyQt.QtCore import QSize, QTimer, Qt
+from qgis.PyQt.QtCore import QEvent, QSize, QTimer, Qt
 from qgis.PyQt.QtGui import QIcon, QKeySequence
 
 # QShortcut a changé de module entre Qt5 (QtWidgets) et Qt6 (QtGui).
@@ -60,11 +60,12 @@ from .steps.step_3_detection import DetectionPage
 from .steps.step_4_launch import LaunchPage, RecapSection
 from .steps.step_6_resultats import ResultatsPage
 from .visualisation_tab import VisualisationTab
+from .widgets.barrette import Barrette
 from .widgets.card import build_card
 from .widgets.stepper_rail import StepperRail
 from .widgets.toast import show_toast
 
-# Onglet « Consulter les flux » : montré seulement si VISUALISATION_TAB_ENABLED (importé de
+# Onglet « Catalogue des flux » : montré seulement si VISUALISATION_TAB_ENABLED (importé de
 # app/services/visu_catalogue, faux depuis la 0.18.1) ; dev/demo_comite/smoke_dialog le force à vrai.
 
 try:
@@ -192,7 +193,8 @@ class WizardDialog(QDialog):
             self._tabs.addTab(wizard_tab, "Traitement")
             self._visu_tab = VisualisationTab(self._plugin_root, iface=self._iface)
             self._visu_tab.layer_count_changed.connect(self._on_visu_layer_count)
-            self._tabs.addTab(self._visu_tab, "Consulter les flux")
+            self._visu_tab.fiche_fond_demandee.connect(lambda corps, titre: self._poser_fiche("Fond", corps, titre))
+            self._tabs.addTab(self._visu_tab, "Catalogue des flux")
             self._tabs.setCurrentIndex(0)      # le wizard reste l'entrée principale
             root.addWidget(self._tabs)
         else:
@@ -217,11 +219,11 @@ class WizardDialog(QDialog):
         self._detection_page.modele_requested.connect(self.ouvrir_fiche_modele)
         self._source_page.mode_changed.connect(self._on_mode_changed)
         self._run_view.run_started.connect(self._on_run_started)
-        self._run_view.revoir_resultats.connect(lambda: self._goto_step(self.STEP_RESULTATS))
         self._resultats_page.relancer.connect(self._relancer_depuis_resultat)
         self._run_view.run_finished.connect(self._on_run_finished)
         self._launch_page.workers_changed.connect(self._on_workers_changed)
         self._launch_page.carte_graphique_changed.connect(self._on_carte_graphique_changed)
+        self._launch_page.contexte_moderne_changed.connect(self._on_contexte_moderne_changed)
         self._launch_page.modifier_demande.connect(self._goto_step)
         self._launch_page.reverifier_demande.connect(self._update_launch_recap)
         self._refresh_rail_subs()
@@ -258,6 +260,7 @@ class WizardDialog(QDialog):
         "Produit": ("IndiceInfoDialog", (640, 720)),
         "Structure": ("ClassInfoDialog", (640, 720)),
         "Modèle": ("ModelInfoDialog", (620, 720)),
+        "Fond": ("IndiceInfoDialog", (640, 720)),
     }
 
     def _poser_fiche(self, sorte: str, widget, titre: str) -> None:
@@ -570,6 +573,8 @@ class WizardDialog(QDialog):
         # Carte graphique (étape 4, décochée par défaut) : même aller-retour que les workers.
         self._launch_page.set_carte_graphique(bool(cv.get("carte_graphique", True)))
         self._config.setdefault("computer_vision", {})["carte_graphique"] = self._launch_page.carte_graphique_value()
+        self._launch_page.set_contexte_moderne(bool(cv.get("contexte_moderne", True)))
+        self._config["computer_vision"]["contexte_moderne"] = self._launch_page.contexte_moderne_value()
 
         sections = [RecapSection("Données", badges=[mode_info(mode).banner_label], step=1)]
 
@@ -628,7 +633,7 @@ class WizardDialog(QDialog):
         rvt_tags = [product(k).tag for k in rvt_keys() if k in active]
         # Pastille « Produits » = MNT + indices fusionnés : on combine la
         # résolution et les tags RVT en un seul sous-libellé.
-        products_sub = " · ".join([f"{nombre(res, 2)} m/pixel"] * bool(res) + rvt_tags)
+        products_sub = " · ".join(([f"{nombre(res, 2)} m/pixel"] if res else []) + rvt_tags)
         subs = {
             Stage.DOWNLOAD: "",  # téléchargement : comptage de dalles différé (préflight)
             Stage.PRODUCTS: products_sub,
@@ -652,6 +657,14 @@ class WizardDialog(QDialog):
     def _on_carte_graphique_changed(self, on: bool) -> None:
         """Persiste l'option « Détection sur la carte graphique » (étape 4)."""
         self._config.setdefault("computer_vision", {})["carte_graphique"] = bool(on)
+        try:
+            self._cm.save_last_ui_config(self._config)
+        except Exception:
+            pass
+
+    def _on_contexte_moderne_changed(self, on: bool) -> None:
+        """Persiste l'option « Signaler le contexte moderne » (étape 4)."""
+        self._config.setdefault("computer_vision", {})["contexte_moderne"] = bool(on)
         try:
             self._cm.save_last_ui_config(self._config)
         except Exception:
@@ -856,7 +869,7 @@ class WizardDialog(QDialog):
 
     def _on_visu_layer_count(self, count: int) -> None:
         """Compteur sur l'onglet : « Visualisation (3) » quand des couches sont ouvertes."""
-        self._tabs.setTabText(1, "Consulter les flux" + (f" ({count})" if count else ""))
+        self._tabs.setTabText(1, "Catalogue des flux" + (f" ({count})" if count else ""))
 
     def request_cancel_if_running(self) -> None:
         """Annulation propre demandée par l'hôte (unload du plugin) —
@@ -877,6 +890,63 @@ class WizardDialog(QDialog):
                 self._run_view.request_cancel()
         except Exception:
             pass
+
+    def changeEvent(self, event):  # noqa: N802 (signature Qt)
+        """« Réduire » masque la fenêtre au lieu de la réduire : une fenêtre rattachée à QGIS se réduit,
+        sous Windows, en une barre de titre minuscule en bas de l'écran (constat du 2026-11-12). Masquée,
+        elle garde son état et le traitement en cours ; l'icône du plugin la rouvre (``main.run``)."""
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange and self.isMinimized():
+            QTimer.singleShot(0, self._masquer_au_lieu_de_reduire)
+
+    def _masquer_au_lieu_de_reduire(self) -> None:
+        if not self.isMinimized():
+            return
+        # Masquer D'ABORD, lever l'état « réduite » ensuite : restaurée encore visible, la fenêtre
+        # recevrait de Qt un événement d'affichage tardif (vu sous Qt6) qui effacerait la barrette.
+        self.masquer_vers_barrette()
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+
+    def masquer_vers_barrette(self, etat: str = "") -> None:
+        """Masque la fenêtre **sans toucher à sa taille ni à sa place** et pose la barrette flottante
+        (``widgets/barrette.py``) : un clic dessus, ou sur l'icône du plugin, rouvre la fenêtre telle
+        quelle. ``etat`` fixe la ligne affichée (« Choix des dalles sur la carte ») ; sans lui, la
+        barrette suit l'étape courante et le chrono du traitement."""
+        self._etat_barrette = etat
+        self._place_avant_barrette = self.pos()      # Qt recentre un dialogue remontré : on la lui rend
+        if getattr(self, "_barrette", None) is None:
+            self._barrette = Barrette(self.parentWidget(), texte=self._texte_barrette)
+            self._barrette.rouvrir.connect(self.rouvrir_depuis_barrette)
+        self.hide()
+        self._barrette.montrer()
+
+    def rouvrir_depuis_barrette(self) -> None:
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def _texte_barrette(self) -> str:
+        if getattr(self, "_etat_barrette", ""):
+            return self._etat_barrette
+        if self._run_view.is_running():
+            chrono = self._run_view._fil_droite.text()
+            return f"Traitement {chrono}" if chrono else "Traitement en cours"
+        if getattr(self, "_tabs", None) is not None and self._tabs.currentIndex() > 0:
+            return "Catalogue des flux"
+        return f"Étape {self._current_step} · {self.RAIL_STEPS[self._current_step - 1]['label']}"
+
+    def showEvent(self, event):  # noqa: N802 (signature Qt)
+        # La fenêtre revient (barrette, icône du plugin, fin du choix des dalles) : la barrette s'efface.
+        super().showEvent(event)
+        if event.spontaneous():
+            return                                   # événement du système, pas un retour demandé
+        if getattr(self, "_barrette", None) is not None:
+            self._barrette.cacher()
+        self._etat_barrette = ""
+        place = getattr(self, "_place_avant_barrette", None)
+        if place is not None:
+            self._place_avant_barrette = None
+            self.move(place)
 
     def closeEvent(self, event):  # noqa: N802 (signature Qt)
         # PAS de garde ici : QDialog.closeEvent route déjà la croix vers

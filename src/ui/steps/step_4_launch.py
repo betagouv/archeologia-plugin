@@ -122,6 +122,7 @@ class _PreflightEmitter(QObject):
 class LaunchPage(QWidget):
     workers_changed = pyqtSignal(int)
     carte_graphique_changed = pyqtSignal(bool)
+    contexte_moderne_changed = pyqtSignal(bool)
     reverifier_demande = pyqtSignal()        # « Revérifier » : l'assistant relance les vérifications
     modifier_demande = pyqtSignal(int)       # « modifier » d'une section du récap : l'étape à ouvrir
 
@@ -130,6 +131,7 @@ class LaunchPage(QWidget):
         self._recap_rows: List[QWidget] = []
         self._workers = 3   # = ConfigManager (processing.max_workers)
         self._carte = True   # = ConfigManager (computer_vision.carte_graphique), cochée par défaut (2026-10-26)
+        self._contexte = True   # = ConfigManager (computer_vision.contexte_moderne), cochée par défaut (2026-11-11)
         self._preflight_gen = 0
         self._validation_errors: List[str] = []
         self._validation_avertissements: List[str] = []
@@ -302,6 +304,25 @@ class LaunchPage(QWidget):
         if sys.platform != "win32":
             self._carte_check.setEnabled(False)
             self._carte_check.setToolTip("Windows seulement (DirectML).")
+
+        # Contexte moderne (2026-11-11) : croisement des détections avec la BD TOPO à la fin du traitement.
+        ligne_ctx = QHBoxLayout()
+        ligne_ctx.setContentsMargins(0, 0, 0, 0)
+        ligne_ctx.setSpacing(8)
+        self._contexte_check = QCheckBox("Signaler le contexte moderne")
+        self._contexte_check.setObjectName("ContexteModerneCheck")
+        self._contexte_check.setChecked(True)
+        self._contexte_check.toggled.connect(self._on_contexte_toggled)
+        ligne_ctx.addWidget(self._contexte_check)
+        note_ctx = QLabel(
+            "À la fin du traitement, chaque détection est comparée aux bâtiments et aux surfaces en eau de "
+            "l'IGN. Une détection posée sur un hangar ou un bassin passe dans la catégorie grise "
+            "« Contexte moderne », décochée ; rien n'est supprimé. Demande une connexion à internet."
+        )
+        note_ctx.setObjectName("WorkersNote")
+        note_ctx.setWordWrap(True)
+        ligne_ctx.addWidget(note_ctx, 1)
+        colonne.addLayout(ligne_ctx)
 
         # La décision mémorisée pour ce poste (carte retenue ou écartée, à quelle date),
         # et « Oublier » pour la faire re-sonder au prochain traitement.
@@ -506,6 +527,23 @@ class LaunchPage(QWidget):
 
     def carte_graphique_value(self) -> bool:
         return self._carte
+
+    # ------------------------------------------------------------------
+    # Contexte moderne
+    # ------------------------------------------------------------------
+    def set_contexte_moderne(self, on: bool) -> None:
+        """Initialise la case depuis la configuration (sans émettre de signal)."""
+        self._contexte = bool(on)
+        self._contexte_check.blockSignals(True)
+        self._contexte_check.setChecked(self._contexte)
+        self._contexte_check.blockSignals(False)
+
+    def _on_contexte_toggled(self, on: bool) -> None:
+        self._contexte = bool(on)
+        self.contexte_moderne_changed.emit(self._contexte)
+
+    def contexte_moderne_value(self) -> bool:
+        return self._contexte
 
     def set_decision_carte(self, decision: Optional[dict]) -> None:
         """La décision mémorisée pour ce poste (``carte_graphique.decision_memorisee``),

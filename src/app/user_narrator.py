@@ -403,6 +403,20 @@ class UserNarrator:
         for p in phrases:
             self._r.user_info(f"   • {p}")
 
+    def contexte_moderne(self, phrase: str, avertissement: bool = False) -> None:
+        """Bilan du croisement avec la BD TOPO (2026-11-11), ou pourquoi il n'a pas été fait."""
+        if not phrase:
+            return
+        if avertissement:
+            self._r.user_warning(f"⚠️ {phrase}")
+        else:
+            self._r.user_info(f"🏠 {phrase}")
+
+    def doublons_structures(self, n: int) -> None:
+        """Objets détectés sous deux structures (2026-11-12) : gardés tous les deux, et marqués."""
+        self._r.user_info(f"👥 {n} détection{'s' if n > 1 else ''} recouvre{'nt' if n > 1 else ''} une détection d'une "
+                          "autre structure : toutes sont gardées, l'attribut « aussi_vu_comme » nomme l'autre.")
+
     # ------------------------------------------------------------------
     # Finalisation
     # ------------------------------------------------------------------

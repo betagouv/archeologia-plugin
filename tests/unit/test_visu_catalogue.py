@@ -241,3 +241,21 @@ def test_merge_catalogues_sans_local_rend_la_base():
     merged = merge_catalogues(base, Catalogue(), None)
     assert merged.departments == base.departments
     assert merged.updated == "2026-07"
+
+
+def test_relief_par_zone_seulement_avec_un_catalogue_installe(tmp_path):
+    """2026-11-18 (demande de l'utilisateur) : le Catalogue des flux est livré, mais la page « Relief par
+    zone » reste inaccessible tant qu'aucun catalogue de flux n'est installé (le ZIP n'en porte aucun :
+    data/demo_catalogue et data/local_catalogue en sont exclus)."""
+    from pathlib import Path
+
+    from src.app.services.visu_catalogue import relief_par_zone_installe
+
+    assert relief_par_zone_installe(tmp_path) is False
+    local = tmp_path / "data" / "local_catalogue"
+    local.mkdir(parents=True)
+    (local / "catalogue.json").write_text("{}", encoding="utf-8")
+    assert relief_par_zone_installe(tmp_path) is True
+    onglet = (Path(__file__).resolve().parents[2] / "src" / "ui" / "visualisation_tab.py").read_text(encoding="utf-8")
+    assert "self._relief_installe = relief_par_zone_installe(self._plugin_root)" in onglet
+    assert "if index == PAGE_RELIEF and not self._relief_installe:" in onglet

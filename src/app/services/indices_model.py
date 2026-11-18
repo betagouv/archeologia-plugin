@@ -61,31 +61,21 @@ def base_keys() -> List[str]:
     return [p.key for p in _PRODUCTS if not p.is_rvt]
 
 
-#: Les trois images cochées d'avance à une ouverture vierge (lot 3, 2026-10-24) : le
-#: relief nu, les creux (SVF) et les reliefs (LD) — un premier regard utile, sans
-#: pastille rouge dès l'ouverture. Une configuration enregistrée garde ses coches.
-_RECOMMANDEES: List[str] = ["MNT", "SVF", "LD"]
-_QUALITE: List[str] = ["DENSITE", "COUVERTURE"]
+#: Deux sections à l'étape 2 (décision de l'utilisateur, 2026-11-12) : « MNT et qualité de la
+#: donnée » puis « Indices de visualisation ». Plus de section « Recommandé pour commencer »,
+#: et **rien n'est coché d'avance** : l'utilisateur choisit. Une configuration enregistrée
+#: garde ses coches.
+_MNT_ET_QUALITE: List[str] = ["MNT", "DENSITE", "COUVERTURE"]
 
 
-def recommended_keys() -> List[str]:
-    """Section « Recommandé pour commencer » de l'étape 2 : MNT, SVF, LD."""
-    return list(_RECOMMANDEES)
-
-
-def quality_keys() -> List[str]:
-    """Section « Qualité de la donnée » : densité et couverture des points sol."""
-    return list(_QUALITE)
-
-
-def other_rvt_keys() -> List[str]:
-    """Section « Autres indices de visualisation » : les RVT hors recommandés, dans l'ordre du catalogue."""
-    return [p.key for p in _PRODUCTS if p.is_rvt and p.key not in _RECOMMANDEES]
+def mnt_et_qualite_keys() -> List[str]:
+    """Section « MNT et qualité de la donnée » : le relief nu, la densité et la couverture des points sol."""
+    return list(_MNT_ET_QUALITE)
 
 
 def default_products() -> Dict[str, bool]:
-    """Les trois images recommandées cochées, le reste décoché."""
-    return {p.key: p.key in _RECOMMANDEES for p in _PRODUCTS}
+    """Aucun produit coché à une ouverture vierge."""
+    return {p.key: False for p in _PRODUCTS}
 
 
 # Produits dérivés du nuage de points LiDAR (densité = points/m², couverture =

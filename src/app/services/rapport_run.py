@@ -555,7 +555,7 @@ def _bilan(bilan: Sequence[Mapping[str, Any]], surface_km2: Optional[float],
             + (f";background:{teintes[cat]}" if teintes.get(cat) else "") + '"></span>'
             for cat, _sing, cls, _g in _NIVEAUX if total and int(eff.get(cat, 0)) > 0
         )
-        detail = texte_niveaux_effectifs(eff)
+        detail = texte_niveaux_effectifs(eff, int(ligne.get("ecartees") or 0))
         col_densite = f'<td class=num>{_dec(total / surface_km2, 1)}</td>' if densite else ""
         lignes.append(
             f"<tr><td>{_e(ligne.get('label') or ligne.get('slug') or '')}</td>"

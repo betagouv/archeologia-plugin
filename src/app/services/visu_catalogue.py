@@ -24,12 +24,23 @@ from typing import Dict, List, Optional, Sequence
 
 from .indices_model import ProductInfo, product
 
-#: L'onglet « Consulter les flux » et son chapitre du manuel : faux tant que le catalogue public
+#: L'onglet « Catalogue des flux » et son chapitre du manuel : faux tant que le catalogue public
 #: n'existe pas (0.18.1, décision de l'utilisateur du 2026-10-27 : « il ne faut pas l'inclure pour le
 #: moment »). Lu par ui/wizard_dialog (l'onglet), app/services/aide (le chapitre), dev/rendu_hors_ecran
 #: et dev/recette_auto ; dev/demo_comite/smoke_dialog le force à vrai.
 VISUALISATION_TAB_ENABLED = True  # feat/visu-flux-gpf : onglet montré ; faux sur dev et main (0.18.1)
 CHAPITRE_ONGLET = "consulter-les-flux"
+
+#: Catalogues de flux de la page « Relief par zone », relatifs à la racine du plugin. Aucun n'est dans le
+#: ZIP (dev/package_plugin.py les exclut) : seul un poste où l'un est installé voit cette page.
+CATALOGUES_DE_FLUX = (Path("data") / "demo_catalogue" / "catalogue.json",
+                      Path("data") / "local_catalogue" / "catalogue.json")
+
+
+def relief_par_zone_installe(plugin_root: Path) -> bool:
+    """Vrai si la page « Relief par zone » a un catalogue à montrer sur ce poste (2026-11-18 : le Catalogue
+    des flux est livré, cette page reste inaccessible ailleurs)."""
+    return any((Path(plugin_root) / p).is_file() for p in CATALOGUES_DE_FLUX)
 
 # Familles affichées comme filtres au-dessus du mur.
 FAMILY_BASE = "Base"
