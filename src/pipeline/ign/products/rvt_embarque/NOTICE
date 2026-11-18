@@ -16,6 +16,9 @@ Modifications (2026-10, Archéolog'IA) : dans blend.py, default.py et tile.py, l
 « from rvt.blend_func import * ») sont devenus relatifs, et le nom « rvt » y désigne ce dossier : la copie ne
 partage jamais le module « rvt » de l'extension rvt-qgis si elle est installée. Une ligne d'en-tête le signale dans
 chacun de ces trois fichiers. Fins de ligne normalisées. Aucun calcul n'est modifié.
+Modification (2026-11-18) : dans vis.py, « from scipy.ndimage.morphology import distance_transform_edt » devient
+« from scipy.ndimage import distance_transform_edt » — même fonction, l'ancien espace de noms est déprécié et
+disparaît en SciPy 2.0. Une ligne d'en-tête le signale. Aucun calcul n'est modifié.
 Le plugin appelle cette bibliothèque depuis src/pipeline/ign/products/moteur_indices.py, cvat.py et crim.py.
 
 Empreintes SHA-256 des fichiers d'origine (rvt-qgis 1.0.1) :
