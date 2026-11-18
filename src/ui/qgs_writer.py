@@ -16,7 +16,13 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-from ..app.services.nom_analyse import groupe_analyse, groupe_indices, groupe_structures
+from ..app.services.nom_analyse import (
+    est_qualite,
+    groupe_analyse,
+    groupe_indices,
+    groupe_qualite,
+    groupe_structures,
+)
 from ..app.services.vocabulaire import titre_dossier_image
 from ..pipeline.cv.class_color_registry import color_for_class
 from .layer_loader import (
@@ -26,6 +32,7 @@ from .layer_loader import (
     apply_coverage_raster_symbology,
     build_detection_vector_layer,
     build_low_coverage_vector_layer,
+    regler_indices,
 )
 
 _ALIASES = {
@@ -47,7 +54,7 @@ def _add_rasters(
     coverage_threshold_percent: float = 30.0,
 ) -> None:
     """Ajoute les VRT comme couches raster (groupe « Indices » de l'analyse, sous les vecteurs ;
-    à plat sans titre d'analyse).
+    densité et couverture dans « Qualité de la donnée », décochées ; à plat sans titre d'analyse).
 
     Le MNT est placé **en dernier** → tout en bas de l'arbre (sous les indices),
     car ``root.addLayer`` ajoute en fin de liste = bas de l'arbre. Le MNT (modèle
@@ -69,7 +76,13 @@ def _add_rasters(
         if rvt_type == "COUVERTURE":
             apply_coverage_raster_symbology(layer, coverage_threshold_percent, logger)
         proj.addMapLayer(layer, False)
-        groupe_indices(root).addLayer(layer)
+        if est_qualite(rvt_type):
+            noeud = groupe_qualite(root).addLayer(layer)
+            if noeud is not None:
+                noeud.setItemVisibilityChecked(False)
+        else:
+            groupe_indices(root).addLayer(layer)
+    regler_indices(root)   # « Indices » exclusif, LD coché (jamais à la racine)
 
 
 def _apply_validation_form(layer, all_classes: List[str], logger: logging.Logger) -> None:
@@ -240,8 +253,8 @@ def write_validation_project(
             if ext is not None and not ext.isEmpty():
                 extent.combineExtentWith(ext)
 
-        # 1b) Couche QA « zones mal couvertes » — insérée à l'index 0 APRÈS les
-        # groupes d'entités (insertGroup(0)) : elle finit tout en haut de l'arbre.
+        # 1b) Couche QA « zones mal couvertes » — en tête de « Qualité de la donnée » (2026-11-18),
+        # groupe placé au-dessus de « Structures » quel que soit l'ordre de création.
         for qa in qa_paths or []:
             if not qa:
                 continue
@@ -250,7 +263,7 @@ def write_validation_project(
                 logger.warning(f"Couche QA invalide, ignorée: {qa}")
                 continue
             proj.addMapLayer(qa_layer, False)
-            root.insertLayer(0, qa_layer)
+            groupe_qualite(root).insertLayer(0, qa_layer)
             ext = qa_layer.extent()
             if ext is not None and not ext.isEmpty():
                 extent.combineExtentWith(ext)

@@ -7,6 +7,7 @@
     C:/OSGeo4W/bin/python-qgis.bat dev/rendu_hors_ecran.py manuel [--chapitre etape-2-produits --ancre tuilage-et-marge] [--recherche mot] [--tous]
     C:/OSGeo4W/bin/python-qgis.bat dev/rendu_hors_ecran.py journal                             # vue d'exécution : renvoi ⚠ cliquable
     C:/OSGeo4W/bin/python-qgis.bat dev/rendu_hors_ecran.py profil [--modele crateres_seg_ld_v1]
+    C:/OSGeo4W/bin/python-qgis.bat dev/rendu_hors_ecran.py arbre [--fixture tests/fixtures/arbre_analyse.qgs]
 
 Monte un ``QgsApplication`` en ``QT_QPA_PLATFORM=offscreen`` avec le thème QSS du plugin, puis :
 
@@ -25,6 +26,9 @@ Monte un ``QgsApplication`` en ``QT_QPA_PLATFORM=offscreen`` avec le thème QSS 
   étapes 4 et 5 de l'assistant : bouton principal, « Suivant » vers le suivi pendant un run, journal gardé.
 - ``profil`` : la fiche de classe et la fiche ⓘ d'un modèle, avec la figure du profil des scores,
   puis l'étape 3 en réglages (mini-profil déplié sur les lignes des structures du modèle).
+- ``arbre`` : l'arbre des couches d'une analyse sur un livrable synthétique, écrit (``projet.qgs``) puis
+  chargé en direct, et une analyse déjà chargée à l'ancienne rechargée ; même contrôle
+  (``nom_analyse.ecarts_arbre``) ; ``--fixture`` copie le ``.qgs`` écrit pour le test pytest.
 
 Ce qu'il faut savoir (appris le 2026-10-07) : l'écran virtuel fait 800×600, d'où ``resize()`` après
 ``show()`` ; le ``.bat`` avale stdout, les contrôles sont écrits dans ``<sortie>/controles.txt`` ;
@@ -749,9 +753,119 @@ def journal(app, sortie: Path, log) -> int:
     return 0 if n_liens == 2 and v._bilan_box.isVisible() and etapes_ok else 1
 
 
+def _livrable_synthetique(dossier: Path) -> tuple:
+    """Un petit livrable v3 : mosaïques MNT, LD, SVF, COUVERTURE, DENSITE (10 × 10 px en Lambert-93), une
+    couche de détection et la couche des zones mal couvertes. Rend ``(vrts, détections, qa)``."""
+    from osgeo import gdal, ogr, osr
+
+    gdal.UseExceptions()
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(2154)
+    vrts = []
+    for produit in ("SVF_R10_D16_V1_N0", "COUVERTURE", "LD_A15_Rmin10_Rmax20_H1p7_V1", "DENSITE", "MNT"):
+        d = dossier / "livrable" / "indices" / produit / "tif"
+        d.mkdir(parents=True, exist_ok=True)
+        tif = d / f"{produit}_0995_6746.tif"
+        ds = gdal.GetDriverByName("GTiff").Create(str(tif), 10, 10, 1, gdal.GDT_Byte)
+        ds.SetGeoTransform((995000, 100, 0, 6746000, 0, -100))
+        ds.SetProjection(srs.ExportToWkt())
+        ds.GetRasterBand(1).Fill(128)
+        ds = None
+        vrt = d / f"index_{produit}.vrt"
+        gdal.BuildVRT(str(vrt), [str(tif)])
+        vrts.append(str(vrt))
+
+    def gpkg(chemin: Path, couche: str) -> str:
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        src = ogr.GetDriverByName("GPKG").CreateDataSource(str(chemin))
+        lyr = src.CreateLayer(couche, srs, ogr.wkbPolygon)
+        f = ogr.Feature(lyr.GetLayerDefn())
+        f.SetGeometry(ogr.CreateGeometryFromWkt("POLYGON((995100 6745100,995300 6745100,995300 6745300,995100 6745100))"))
+        lyr.CreateFeature(f)
+        src = None
+        return str(chemin)
+
+    from archeo.src.pipeline.coverage_polygons import GPKG_LAYER_NAME
+
+    det = gpkg(dossier / "livrable" / "detections" / "enclos" / "enclos.gpkg", "Enclos")
+    qa = gpkg(dossier / "livrable" / "qualite" / "zones_mal_couvertes.gpkg", GPKG_LAYER_NAME)
+    return vrts, [f"{det}|layername=Enclos"], [qa]
+
+
+def _arbre_vivant(noeud) -> dict:
+    """L'arbre d'un projet chargé, sous la forme que contrôle ``nom_analyse.ecarts_arbre``."""
+    from qgis.core import QgsLayerTree
+
+    couche = QgsLayerTree.isLayer(noeud)
+    return {"nom": noeud.name(), "couche": couche, "coche": noeud.isItemVisibilityCheckedRecursive() if couche
+            else noeud.itemVisibilityChecked(), "exclusif": (not couche) and noeud.isMutuallyExclusive(),
+            "enfants": [] if couche else [_arbre_vivant(n) for n in noeud.children()]}
+
+
+def arbre(app, sortie: Path, log, fixture: str = "") -> int:
+    """L'arbre des couches d'une analyse (2026-11-18), écrit dans ``projet.qgs`` puis chargé en direct, contrôlé
+    par la même règle (``nom_analyse.ecarts_arbre``) ; puis le chargement d'une analyse déjà présente rangée à
+    l'ancienne (couverture dans « Indices », couche QA en tête du groupe) : rangée, sans doublon."""
+    import logging
+
+    from qgis.core import QgsProject, QgsRasterLayer
+
+    from archeo.src.app.services import nom_analyse as na
+    from archeo.src.ui.layer_loader import build_low_coverage_vector_layer, load_result_layers
+    from archeo.src.ui.qgs_writer import write_validation_project
+
+    lg = logging.getLogger("arbre")
+    titre = "Synthèse · arbre — 18/11/2026 10:00"
+    vrts, dets, qas = _livrable_synthetique(sortie / "livrable_synthetique")
+    qgs = sortie / "livrable_synthetique" / "livrable" / "projet.qgs"
+    write_validation_project(qgs, vrts, dets, qa_paths=qas, logger=lg, titre_analyse=titre)
+    ecrit = na.ecarts_arbre(na.arbre_du_qgs(qgs.read_text(encoding="utf-8")), titre)
+    log("projet.qgs écrit :", ecrit or "conforme")
+    if fixture:
+        # Seul l'arbre des couches tel que QGIS l'a écrit (le reste du .qgs : WKT, styles, 140 Ko).
+        import xml.etree.ElementTree as ET
+
+        racine = ET.fromstring(qgs.read_text(encoding="utf-8"))
+        extrait = ET.Element("qgis", {"version": racine.get("version", "")})
+        extrait.append(racine.find("layer-tree-group"))
+        ET.indent(extrait)
+        Path(fixture).write_text(ET.tostring(extrait, encoding="unicode") + "\n", encoding="utf-8")
+        log("  arbre écrit dans", fixture)
+
+    projet = QgsProject.instance()
+    projet.clear()
+    load_result_layers(vrts, dets, None, lg, qa_paths=qas, titre_analyse=titre)
+    direct = na.ecarts_arbre(_arbre_vivant(projet.layerTreeRoot()), titre)
+    log("chargement en direct :", direct or "conforme")
+
+    # Une analyse chargée avant ce changement : couverture dans « Indices », couche QA en tête du groupe.
+    projet.clear()
+    parent = na.groupe_analyse(projet.layerTreeRoot(), titre)
+    indices = parent.addGroup(na.GROUPE_INDICES)
+    for v in vrts:
+        from archeo.src.app.services.vocabulaire import titre_dossier_image
+        from archeo.src.ui.layer_loader import _rvt_type_of
+
+        couche = QgsRasterLayer(v, titre_dossier_image(_rvt_type_of(v)), "gdal")
+        projet.addMapLayer(couche, False)
+        indices.addLayer(couche)
+    ancienne_qa = build_low_coverage_vector_layer(qas[0], 30.0, lg)
+    projet.addMapLayer(ancienne_qa, False)
+    parent.insertLayer(0, ancienne_qa)
+    avant = len(projet.mapLayers())
+    load_result_layers(vrts, dets, None, lg, qa_paths=qas, titre_analyse=titre)
+    rangee = na.ecarts_arbre(_arbre_vivant(projet.layerTreeRoot()), titre)
+    doublons = len(projet.mapLayers()) - avant - 1           # seule la détection est nouvelle
+    log("analyse déjà chargée, rechargée :", rangee or "conforme", "| couches en double :", doublons)
+    log("arbre en direct :", [(n["nom"], [(e["nom"], e["coche"]) for e in n["enfants"]])
+                             for n in _arbre_vivant(projet.layerTreeRoot())["enfants"][0]["enfants"]])
+    return 0 if not (ecrit or direct or rangee or doublons) else 1
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("commande", choices=("captures", "manuel", "profil", "journal"))
+    parser.add_argument("commande", choices=("captures", "manuel", "profil", "journal", "arbre"))
+    parser.add_argument("--fixture", default="", help="arbre : copier le projet.qgs écrit vers ce chemin")
     parser.add_argument("--sortie", type=Path, default=RACINE / "dev" / "docs" / "_local" / "rendu",
                         help="dossier des PNG de contrôle (gitignoré par défaut)")
     parser.add_argument("--chapitre", default="", help="manuel : clé du chapitre (ex. etape-2-produits)")
@@ -773,6 +887,8 @@ def main(argv=None) -> int:
             code = manuel(app, args.sortie, log, args.chapitre, args.ancre, args.recherche, args.tous)
         elif args.commande == "journal":
             code = journal(app, args.sortie, log)
+        elif args.commande == "arbre":
+            code = arbre(app, args.sortie, log, args.fixture)
         else:
             code = profil(app, args.sortie, log, args.modele)
     except Exception as exc:  # noqa: BLE001 — le .bat n'affiche rien : tout va dans le journal
