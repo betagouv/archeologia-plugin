@@ -662,6 +662,9 @@ class WizardDialog(QDialog):
 
     def _on_run_finished(self) -> None:
         self._exit_review_mode()
+        # Le traitement vient d'entrer au registre : le rail de l'étape 6 le compte (2026-11-18).
+        self._resultats_page.rafraichir()
+        self._rail.set_sub(6, self._resultats_page.summary())
 
     def _enter_review_mode(self) -> None:
         """Pendant un run : navigation conservée mais étapes 1-4 en lecture seule.

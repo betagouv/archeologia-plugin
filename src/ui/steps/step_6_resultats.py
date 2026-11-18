@@ -112,6 +112,7 @@ class ResultatsPage(QWidget):
         self._iface = iface
         self._resultats: List[Resultat] = []
         self._lignes: List[QWidget] = []
+        self._lu = False   # registre jamais relu : le rail se tait plutôt que dire « aucun traitement »
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(12)
@@ -155,6 +156,7 @@ class ResultatsPage(QWidget):
             w.deleteLater()
         self._lignes = []
         self._resultats = list(resultats)
+        self._lu = True
         for r in self._resultats:
             ligne = _Ligne(r)
             ligne.ajouter.connect(self._ajouter)
@@ -167,6 +169,8 @@ class ResultatsPage(QWidget):
             self._compteur.setText(self.summary())
 
     def summary(self) -> str:
+        if not self._lu:
+            return ""   # lecture différée (≈ 1,5 s) : faite à l'entrée de l'étape 6 et en fin de traitement
         n = len(self._resultats)
         return f"{pluriel(n, 'traitement')} connu{'s' if n > 1 else ''}" if n else "aucun traitement"
 
