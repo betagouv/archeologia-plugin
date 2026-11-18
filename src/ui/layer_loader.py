@@ -142,7 +142,8 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     from ..app.services.fiabilite import maptip_html, texte_resume
 
     modele = str(entree.get("modele") or "")
-    resume = texte_resume(modele, str(entree.get("classe") or layer.name()), cats,
+    # Libellé de la couche (« Charbonnières »), jamais l'identifiant de classe (2026-11-18).
+    resume = texte_resume(modele, layer.name() or str(entree.get("classe") or ""), cats,
                           str(entree.get("provenance") or ""))
     try:
         md = layer.metadata()
@@ -160,7 +161,7 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Résumé de couche non écrit: {e}")
     try:
-        layer.setMapTipTemplate(maptip_html(cats, modele))
+        layer.setMapTipTemplate(maptip_html(cats, modele, structure=layer.name()))
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Infobulle de détection non écrite: {e}")
 

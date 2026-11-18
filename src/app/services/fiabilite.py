@@ -322,9 +322,14 @@ def _sql_str(s: str) -> str:
     return "'" + str(s).replace("'", "''") + "'"
 
 
-def maptip_html(cats: Sequence[Categorie], modele: str) -> str:
+def maptip_html(cats: Sequence[Categorie], modele: str, structure: str = "") -> str:
     """Gabarit d'infobulle QGIS (``setMapTipTemplate``) : phrase de la catégorie de
-    LA détection survolée, score brut et modèle. Expressions QGIS entre ``[% %]``."""
+    LA détection survolée, score brut et modèle. Expressions QGIS entre ``[% %]``.
+    ``structure`` : libellé de la couche (« Charbonnières »), en titre — jamais l'identifiant
+    de classe ``model_pred`` (2026-11-18) ; à défaut, ``model_pred`` reste le titre."""
+    import html as _html
+
+    titre = _html.escape(structure) if structure else '[% "model_pred" %]'
     branches = []
     for c in cats:
         if c.sous_seuil:
@@ -348,7 +353,7 @@ def maptip_html(cats: Sequence[Categorie], modele: str) -> str:
               "' fragments, le plus sûr à ', round(attribute($currentfeature, 'conf_max'), 2), '<br>'), NULL)")
     return (
         "<div style=\"font-family:sans-serif;font-size:12px;max-width:340px\">"
-        f"<b>[% \"model_pred\" %]</b> — fiabilité <b>[% \"{CHAMP_LABEL}\" %]</b><br>"
+        f"<b>{titre}</b> — fiabilité <b>[% \"{CHAMP_LABEL}\" %]</b><br>"
         f"[% {cas} %]<br>"
         f"[% {fusion} %]"
         f"<span style=\"color:#666\">Score brut [% round(\"confidence\", 2) %] · {modele}</span>"
