@@ -244,9 +244,18 @@ def test_ruines_chateau_et_moulin_informent_sans_exclure(nature, mot):
 
 
 def test_un_rond_point_exclut_la_detection_posee_dessus():
-    assert cm.champs([autre(cm.ROND_POINT, 0.0, 0.97)], "enclos_circulaires", "s")["contexte_moderne"] == "sur un rond-point"
-    bord = cm.champs([autre(cm.ROND_POINT, 0.0, 0.1)], "enclos", "s")
-    assert bord["contexte_moderne"] is None and bord["contexte_info"] == "rond-point recouvrant 10 % de la détection"
+    dessus = cm.champs([autre(cm.ROND_POINT, 0.0, 0.97)], "enclos_circulaires", "s")
+    assert dessus["contexte_moderne"] == "rond-point recouvrant 97 % de la détection"
+
+
+def test_un_rond_point_exclut_a_partir_de_10_pour_cent():
+    """2026-11-19 : même part que le bâti et l'eau. Un enclos de 25 m de rayon autour d'un rond-point de 15 m
+    n'est recouvert qu'à 36 % : à 50 %, il n'était qu'informé alors que c'est le rond-point lui-même."""
+    autour = cm.champs([autre(cm.ROND_POINT, 0.0, 0.36)], "enclos", "s")
+    assert autour["contexte_moderne"] == "rond-point recouvrant 36 % de la détection"
+    assert cm.champs([autre(cm.ROND_POINT, 0.0, 0.10)], "enclos", "s")["contexte_moderne"] is not None
+    bord = cm.champs([autre(cm.ROND_POINT, 0.0, 0.09)], "enclos", "s")
+    assert bord["contexte_moderne"] is None and bord["contexte_info"] == "rond-point recouvrant 9 % de la détection"
 
 
 def test_les_lieux_dits_ne_sont_plus_croises():

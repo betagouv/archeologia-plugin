@@ -1336,7 +1336,7 @@ Logique et écriture testées par pytest (`test_contexte_moderne`, `test_context
 Sur un traitement qui touche un village, un rond-point et un ruisseau (run des Vosges saônoises : coordonnées Lambert-93 ci-dessous).
 
 - [ ] 943889, 6762564 (révisé le 2026-11-13 : une zone d'habitation ne grise plus) : « dans la zone d'habitation « Hameau du Ruisseau des Écrevisses » » est dans `contexte_info` ; l'enclos n'est gris que si un bâtiment recouvre au moins 5 % de sa surface.
-- [ ] 944469, 6757842 : l'enclos et l'enclos circulaire du rond-point sont gris, « sur un rond-point » ; `contexte_source` nomme « Routes et chemins ».
+- [ ] 944469, 6757842 : l'enclos et l'enclos circulaire du rond-point sont gris, « rond-point recouvrant N % de la détection » ; `contexte_source` nomme « Routes et chemins ».
 - [ ] 943754, 6762884 : l'enclos garde sa couleur ; `contexte_info` dit « cours d'eau traversant la détection ».
 - [ ] 945492, 6753702 : `contexte_info` dit « cours d'eau à N m » sur les trois détections.
 - [ ] 945745, 6766482 : `contexte_info` de l'enclos circulaire nomme le lieu-dit « Bois de la Tête ».

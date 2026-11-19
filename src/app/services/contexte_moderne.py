@@ -126,8 +126,8 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
             return None if _txt(a, "nature").startswith(_TRONCONS_DE_SURFACE) else (INFORMER, RAYON_COURS_EAU)
         if objet.source == HABITATION:
             return INFORMER, 0.0        # n'exclut plus (2026-11-13) : c'est le bâtiment qui écarte, pas la zone
-        # rond-point : la détection est dessus (exclue) ou seulement au contact (informée)
-        return (EXCLURE if objet.part >= PART_DEDANS else INFORMER), 0.0
+        # rond-point : même part que le bâti et l'eau (2026-11-19, 50 % avant) ; en deçà, il informe
+        return (EXCLURE if objet.part >= PART_EXCLUSION else INFORMER), 0.0
     if objet.source == BATIMENT:
         if _txt(a, "etat_de_l_objet") == "En ruine" or _txt(a, "nature") in BATI_PATRIMOINE:
             return INFORMER, RAYON_BATIMENT
@@ -260,7 +260,7 @@ def _phrase_ponctuelle(objet: Objet) -> str:
         ou = "traversant la détection" if contact else f"à {round(objet.distance_m)} m"
         return f"{nom} {ou}" + (" (intermittent)" if _txt(a, "persistance") == "Intermittent" else "")
     if objet.source == ROND_POINT:
-        return "sur un rond-point" if objet.part >= PART_DEDANS else f"rond-point {_ou(objet)}"
+        return f"rond-point {_ou(objet)}"
     patrimoine = HABITAT_PATRIMOINE.get(_txt(a, "nature"))
     if patrimoine:
         return f"{_nomme(patrimoine, _txt(a, 'toponyme'))} {_ou(objet)}"

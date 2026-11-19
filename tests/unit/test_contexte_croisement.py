@@ -99,7 +99,7 @@ def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():
     moities = [LineString(anneau[:len(anneau) // 2 + 1]), LineString(anneau[len(anneau) // 2:])]
     objets = {cm.ROND_POINT: [objet(m, nature="Rond-point") for m in moities]}
     ilot, loin = cc.croiser([Point(100, 100).buffer(12), Point(160, 100).buffer(12)], objets, "enclos_circulaires", "s")
-    assert ilot["contexte_moderne"] == "sur un rond-point" and ilot["contexte_part"] == 100
+    assert ilot["contexte_moderne"] == "rond-point recouvrant 100 % de la détection" and ilot["contexte_part"] == 100
     assert loin["contexte_moderne"] is None and loin["contexte_info"] is None
     # un talus sur le même rond-point n'est pas concerné (les linéaires viendront plus tard)
     assert cc.croiser([Point(100, 100).buffer(12)], objets, "talus_et_fosses", "s")[0]["contexte_moderne"] is None
