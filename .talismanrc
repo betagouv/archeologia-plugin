@@ -1,4 +1,324 @@
 fileignoreconfig:
+- filename: data/fonds_publics/legendes/carte_1950.png
+  checksum: 91fc34f57c335917ae67de6703f9b4aaaac7916426a724626fd9ee2a6df0ff8e
+- filename: tests/unit/test_fonds_essais.py
+  checksum: 2fe5a36c97e4fb39c28f66386cec34ab0a9b4e066a57391f32313a04fc464719
+- filename: data/fonds_publics/essais.json
+  checksum: 31f14fcfb5a6a4f72196f899b702bd40016c6a62e2392d9180d5fab2a169e831
+- filename: tests/unit/test_contexte_moderne.py
+  checksum: 0e4a977b6dc6bca344541a84fa8ba3b4bf4e179e92e7e536f551899fe4a9caf7
+- filename: tests/unit/test_contexte_gpkg.py
+  checksum: 1a5e06981db85c4a9baf66edae54d1799f5efbca02fc538764485c25b56dc9cd
+- filename: tests/unit/test_contexte_finalize.py
+  checksum: cfc5a71cae8c68ec08ddfce1055f28d409066c0f5d8a4b664760c426a0ea2bf2
+- filename: aide/img/fonds-de-carte.png
+  checksum: 2ea24c79683b62ebbc8f86398bddd67ad02c0f69468c70951809590dd2cfadcf
+- filename: src/app/services/fonds_publics.py
+  checksum: ef98c7ad181f699ef1e4db91988ffa3fa31fbfb816b68f594bdc9ffc35c93b01
+- filename: dev/fonds_publics.py
+  checksum: 4e5e5075ace7aa02f6f7c7661c081ef9a9635488fb001959f35a4de2e1a010d2
+- filename: src/app/services/contexte_moderne.py
+  checksum: 269ead15b03be4f0efa55f8033563da27d084994c8c71e0e1a29875909df1fc1
+- filename: tests/unit/test_fonds_publics.py
+  checksum: 16724462c6132d1a221ce66a60cf4077ba91e3bfca341afdc41bd8eb3dfdc1d5
+- filename: src/app/services/contexte_gpkg.py
+  checksum: b596fa9c9b483c99bc05852b754e2059dfa2658c3ddbe6ddff55451c4c238a5e
+- filename: src/app/services/contexte_croisement.py
+  checksum: 593a7a293fef1206469581e6133a4e4e8a98d43622fb844a20dd3d6d1c058caa
+- filename: dev/fonds_couverture.py
+  checksum: a8ef1170117fa0e8dbaeffe26164cbae56411c4fd400b142abd92261a5dd6c92
+- filename: dev/controle_flux.py
+  checksum: d1d083ac1f9762de4d6344fcecc00895953894514eee16941a034b8b3acff694
+- filename: src/ui/fonds_page.py
+  checksum: 722e316bdbfd0fc740bd0daa2b6d25860b8d6053ae0f599c7ea2a3deb493c9bc
+- filename: aide/10-consulter-les-flux.md
+  checksum: bb9b87a313fdc84af73bbfd5b398a6de1ef24cdc2ee7bda78628a11bb24e58a1
+- filename: data/fonds_publics/apercus/zones_activite.jpg
+  checksum: 7011768e0c746bd92979ff2a1e9bacac65f9e0328927c25a157d56ef0d80a542
+- filename: data/fonds_publics/apercus/archeo_plu_surfaces.jpg
+  checksum: 2e389bae704b56ce9b8731844e0b82d9b8a0d74271974479d27d8e20384a7c45
+- filename: data/fonds_publics/vignettes/paris_1906.jpg
+  checksum: 5aa4d431337ae02e1f34e9b5a3ef96a3ae8ed801aaae2e533a290daff250566e
+- filename: data/fonds_publics/apercus/carte_allemande_1918.jpg
+  checksum: be950c400f94134ff4cad4843f1aeaa9e55baa5d4d633d18d1064e36a3834ed6
+- filename: data/fonds_publics/apercus/verdun_1916.jpg
+  checksum: d232b167e61f588c75ffe33877e73f8e1bc94aaa3f79e0089110f7439e3640d7
+- filename: data/fonds_publics/vignettes/monuments_historiques.jpg
+  checksum: b24f8e3c258dab1dc8d6c8cd5ef3083560ea077f99e216ff79f420854fe78c62
+- filename: data/fonds_publics/vignettes/ocsge_couverture.jpg
+  checksum: 253575af9ff753219f243a7ff80f7291f5b19bfc7347ded76d729f2ba9145416
+- filename: data/fonds_publics/apercus/bretagne_operations.jpg
+  checksum: 4193810b3a59dcfb9ed6e2ac2466b928c80d87ab29a735c6d9c37cf485002a0b
+- filename: data/fonds_publics/vignettes/carte_littorale.jpg
+  checksum: 3cd7c67d07f652851f2e2765e5b3602d1e16c632e5e17887096a49e99884db3d
+- filename: data/fonds_publics/vignettes/photos_1965.jpg
+  checksum: 68f5b77472936d0469a8dd7af662d30c1174a1deefb0e62273e30fd223c6b1ce
+- filename: data/fonds_publics/apercus/verdun_offensives.jpg
+  checksum: a3b26584a78e9e9e5b10bc04894a60e4a85f818d6ef794253b6cb9ca69dd8c9c
+- filename: data/fonds_publics/apercus/batiments.jpg
+  checksum: 9158df635280e46fedada22aaf815c8d6f3b24b0cc31360da80e47bae4999aa2
+- filename: data/fonds_publics/vignettes/photos_calvados_1991.jpg
+  checksum: 6ad50a2e9d6b2cfcc2132ed31f92499a9d837a62638ccdd22da520ef87d073c9
+- filename: data/fonds_publics/vignettes/terrier_corse_1.jpg
+  checksum: 6d9623af25869ed097bac0f77855d4fa07981376fb4f1313c12a52010f296dea
+- filename: data/fonds_publics/vignettes/photos_irc.jpg
+  checksum: 20db714e7a2f943bad7333a355aafd369001fdd32773f5c583a86ebb882dc83d
+- filename: data/fonds_publics/vignettes/bretagne_sites.jpg
+  checksum: be057f759bc97faa544b33f64fb7587e2e418a49d96b849f8441908fb154305b
+- filename: data/fonds_publics/apercus/archeo_plu_points.jpg
+  checksum: 301531471864e4bfbdd4b2808dfe1a8348b1c1f1409379d78b80ac626a1c0b6c
+- filename: data/fonds_publics/vignettes/lidar_ombre.jpg
+  checksum: 53192e5398b98de0b98bcbe57298ccf34e84533084e9524c33a032e8e95fd0c3
+- filename: data/fonds_publics/apercus/ocsge_usage.jpg
+  checksum: 69ce0ddf79a1cc67bcfe3e776f18d2a0415eaf9b32e00d4ba6654a55fa40f5a9
+- filename: data/fonds_publics/vignettes/photos_2011.jpg
+  checksum: 8ca61c19769c7dc7e01c2819d9361e8ac9c8b8432ab1c11c742d721c62229722
+- filename: data/fonds_publics/vignettes/carte_allemande_1918.jpg
+  checksum: 604bb1f2ee3848f530ac57015f3528594d9681a654f52407109ee991a9452611
+- filename: data/fonds_publics/apercus/photos_2021.jpg
+  checksum: dea86c572cfa6b47946db0cbf29653800b2a561cc5101b8c317fdb208054fe4d
+- filename: data/fonds_publics/vignettes/bretagne_operations.jpg
+  checksum: e70b0eeb65b28f3e5c98c092393fb965215533b3f445ced1406add557ced148a
+- filename: data/fonds_publics/apercus/carte_allemande_voies_ferrees_1917.jpg
+  checksum: b99e6974c93d7f880abaf65079461bf26c64122189761584ec54f598a2d700bc
+- filename: data/fonds_publics/apercus/photos_1980.jpg
+  checksum: 7f857c9a5a53834840f612c38f975ec5ce450b76496c21501298cb0ed1be2911
+- filename: data/fonds_publics/apercus/hdf_monuments.jpg
+  checksum: f2d80b18093be61f01dcf7e11abf32ee788986883f88fb28b18d7826db22ec0e
+- filename: data/fonds_publics/vignettes/photos_2021.jpg
+  checksum: aac5162746201e7c66cf165d5dca8b2acda722874ff4c1f895b07145ff084c47
+- filename: data/fonds_publics/apercus/photos_irc.jpg
+  checksum: 6161eb70de1113aa7cabd2f86d22d5d9e765f02b329bb9e7e38fa573361134ae
+- filename: data/fonds_publics/apercus/zones_habitation.jpg
+  checksum: 7c487b4c4b307781aa6d263bf854a6c52c36bec64bdadedfd098ce38e2855d91
+- filename: data/fonds_publics/vignettes/cours_eau.jpg
+  checksum: a98e64dbd7603c7254ac7df2553799d8b735bf95fc4659303c8d7a976f065cdf
+- filename: data/fonds_publics/apercus/photos_calvados_1972.jpg
+  checksum: 1b605abdc073c490b0bf673ea7888f31f28189ea265b7015afecfcbece1c6777
+- filename: data/fonds_publics/apercus/lidar_hauteur.jpg
+  checksum: 4e7bc38105e113b6e69a6bdf40947ea32482d94e830dd9bd6bbc6ef751b0d4dd
+- filename: data/fonds_publics/apercus/sites_patrimoniaux.jpg
+  checksum: 88e192c9d3691a72eed2c2328375d03b03149c3d2c50556396a9716a293f4e08
+- filename: data/fonds_publics/vignettes/geologie_harmonisee.jpg
+  checksum: 846c4e155ceacf8992d9029b4d26af702893fef75c0769a71659b401a55ee829
+- filename: data/fonds_publics/apercus/carte_allemande_haut_rhin_1915.jpg
+  checksum: cf6c3b412f05d305e8294f86a07e954779ce79918dd59a2e81f524a332561236
+- filename: data/fonds_publics/apercus/photos_2016.jpg
+  checksum: 254f2bd37bb54ef7b9a3af2ac554c1282cdad78e0742dab0d986c64211dd58fe
+- filename: data/fonds_publics/apercus/carte_1950.jpg
+  checksum: 213b643c9c03660c807c6973f6630d0c04941b9bed8a77d4fd9d005350cfcbb7
+- filename: data/fonds_publics/apercus/verdun_fronts.jpg
+  checksum: 31643c99e37b8c40ec8b0fcabcb380d8626a6c99e49113d1a7cae46e1abc48d8
+- filename: data/fonds_publics/vignettes/carte_allemande_haut_rhin_1915.jpg
+  checksum: c2573c9c32f043051062db39033c791fecc0da2de9f531df64fc89dc4cf10d8e
+- filename: data/fonds_publics/apercus/bretagne_sites.jpg
+  checksum: b2371afbaf0e8ef24aa190eaaf139e6ae8b37dcd0820f09f892a10afcd76dff6
+- filename: data/fonds_publics/vignettes/photos_calvados_1955.jpg
+  checksum: 2bccf111c34546298397be3ab8a520a99f8317ab7f8eaaba710cbedd0416ac10
+- filename: data/fonds_publics/apercus/monuments_historiques.jpg
+  checksum: 3b214816d6f018263b6f41b73d3fdf52719b9a7dfd8c4aa6e14bdcfa75f9ee1c
+- filename: data/fonds_publics/vignettes/lieux_dits.jpg
+  checksum: b76eb554a95bbbd406db7f8f15420404b695aa857371c07d3a3d3ef9e73a2630
+- filename: data/fonds_publics/vignettes/batiments.jpg
+  checksum: a9144aac4feb8449777888ca1f203891f0c16863390154e43c14f6bfd642b899
+- filename: data/fonds_publics/vignettes/zones_habitation.jpg
+  checksum: f3fef4330c6ca6fb469dac589fc3c36bc33e9d3de8578685e3f752b60f94e32e
+- filename: data/fonds_publics/vignettes/strasbourg_photos_1964.jpg
+  checksum: 465a90d0c49202de0a408aae4e0662f59608a4e5570fa3f0b7e152884f3be334
+- filename: data/fonds_publics/apercus/verdun_fort_douaumont.jpg
+  checksum: 85b61bf25ff2feccee9cbd6168e9d4d2e27511654583a8379dfaf9ed8d0f2dcb
+- filename: data/fonds_publics/apercus/estompage.jpg
+  checksum: a8d6903c70037ca940b71cf7ff95213a150299e81206967aa02434142049b308
+- filename: data/fonds_publics/vignettes/sites_classes.jpg
+  checksum: 2a2cfafd0b2022ab7a2871b2b1640386d5327ff3c5df5cab06597bd4f784dc75
+- filename: data/fonds_publics/apercus/parcelles.jpg
+  checksum: 00f2181a830c03f49901501198898796463a444b7f332c84bc73f94d18201f59
+- filename: data/fonds_publics/vignettes/bretagne_zppa.jpg
+  checksum: 2d23d3e09a5bb4b06a3d2ae339015a35071c952bcb5079aa44297f6a93b00724
+- filename: data/fonds_publics/vignettes/bretagne_voies.jpg
+  checksum: 4166bce40e73d9f121f87a59043a1124914fe480431a5a35202b2959a2ce5ef3
+- filename: data/fonds_publics/apercus/ocsge_couverture.jpg
+  checksum: e5781799a24020694a207a3d98c1fc55857f8e0044d7d7f9407d037cba156436
+- filename: data/fonds_publics/apercus/photos_1965.jpg
+  checksum: d6cdb38d44674ad53e024e95c1ddb2373af475a82699a59e3148b53d2ad1ae8c
+- filename: data/fonds_publics/vignettes/cadastre.jpg
+  checksum: cce9c768b40a874b966b69008a1d86e41a6fd6f2ea71208928c7b35b198a62f6
+- filename: data/fonds_publics/apercus/etat_major.jpg
+  checksum: d7eba155090ee9df63272c606e8990b56099729760bd0083e46f5119c9d11f3b
+- filename: data/fonds_publics/apercus/inrap.jpg
+  checksum: 26a811b8ddcb15c689daa184b64155eb9dc9cc6b5811b57e8c30e75a152aec9f
+- filename: data/fonds_publics/apercus/photos.jpg
+  checksum: d796a268d6bb1df36ec3c8f55facca3eeaba63fcc59ff1fb6fb4ab784e912205
+- filename: data/fonds_publics/apercus/verdun_defenses.jpg
+  checksum: f7e8af00d0e8c0effe17a082c6b77fe4363bc83f5ea06f7d8303f94f3bad14b2
+- filename: data/fonds_publics/apercus/terrier_corse_2.jpg
+  checksum: 324544b1864a3fb555b320d53cf638a03b6a82fb335495e2644963c01ced910d
+- filename: data/fonds_publics/vignettes/photos_2000.jpg
+  checksum: 028569c0a726716182f72f4a54250ea7c901be2cee3967eb68e7cf35eddbdf2e
+- filename: data/fonds_publics/vignettes/photos_calvados_1972.jpg
+  checksum: 845dcbd0f69b6453d7387d26585489834736cea84330b4a5f35a16c4a79cb563
+- filename: data/fonds_publics/vignettes/cosia.jpg
+  checksum: f6fee84920246c1b0768557237f5e09840e090f87dd8dd2325a814f495f466e7
+- filename: data/fonds_publics/apercus/lieux_dits.jpg
+  checksum: 57b95f1db26e85cb31e666275cfbe7c5d047381907a256bef4253ba9f23ce504
+- filename: data/fonds_publics/apercus/geologie_harmonisee.jpg
+  checksum: 9348cbe12bd6ba7e3b304d0cb84fd6f39a3928246ca33edf2849edb6672dc1b2
+- filename: data/fonds_publics/vignettes/carte_1950.jpg
+  checksum: ecfd5a70d4538aadbbd72517f4f17ce0c846639ef1322ff2ad28c0e4c34395d6
+- filename: data/fonds_publics/apercus/photos_2006.jpg
+  checksum: 8fb338eb0eee8beadaf078c1c4c430aaaa075a69bf3565e31101ea74d82c039e
+- filename: data/fonds_publics/apercus/terrier_corse_1.jpg
+  checksum: a5567ff67e27b40413fe05a1da652179e19b98aac110398619a0c67c73770d2f
+- filename: data/fonds_publics/vignettes/photos_1950.jpg
+  checksum: 3385b409502c16f253d7ce0302d6692aed9d1b887cf473537d2abac8153f647e
+- filename: data/fonds_publics/vignettes/etat_major_10.jpg
+  checksum: 36eb9849d7cbe661549e479e9ae8cdd5805f55a9f2796dcc9b58f327f913310a
+- filename: data/fonds_publics/vignettes/geologie.jpg
+  checksum: c2073b8e488627f0773d185ff752cd33ecc2d0767c0e4174ba49edaa8d772ab1
+- filename: data/fonds_publics/vignettes/verdun_mort_homme.jpg
+  checksum: a57237ee89848a213ded39b1ba0750bf4774dbffad4d12291f479c615c2d117a
+- filename: data/fonds_publics/apercus/aura_zppa.jpg
+  checksum: f27337479efd7692161c6bb9f300d6f5fdb5b308649fd0bea8fda9bc891ca2f9
+- filename: data/fonds_publics/fiches.json
+  checksum: 32e77b9b258b716adbb6d962e2f7d92072e44dc8a7c932c9c0a69f79851036d5
+- filename: data/fonds_publics/apercus/courbes.jpg
+  checksum: be9b4efaf289154f58f8284577b1d51f75dc697f90641edca03b4a0f924bbe9b
+- filename: data/fonds_publics/vignettes/archeo_plu_surfaces.jpg
+  checksum: c4c5b4b62f40ac0d925629f6ada67d43ad1e5a945df9d3b8949f685cdcecc372
+- filename: data/fonds_publics/apercus/forets_anciennes.jpg
+  checksum: 74f090e3421beac1dc143554e75ecf59257af14d3dd109aba7c3ad6c88b440c7
+- filename: data/fonds_publics/apercus/littoral_2000.jpg
+  checksum: b114398e06573bd0bf763cc3d8fdbbe761aa9cb9273ab9486c59f7f4e7dc55a9
+- filename: data/fonds_publics/apercus/paris_1906.jpg
+  checksum: 76a04aa61a65c661a3af2e1a6a0df38f5c6c024a2e9320c02eb7e8aeeed9ff43
+- filename: data/fonds_publics/apercus/photos_2000.jpg
+  checksum: d2766ef5f2a0284bc7a5242b440864d15974251e5f602bc14e331f12bbb7ddf5
+- filename: data/fonds_publics/vignettes/photos_2006.jpg
+  checksum: ff83437f63a750076f21051f39b61afdc150f6077bdb716e5293e40fc82d3075
+- filename: data/fonds_publics/apercus/photos_calvados_1991.jpg
+  checksum: ecfdf301fec9bca905a6d9860d399b9b29dd36e89a1f63eee96b61129c78bcf9
+- filename: data/fonds_publics/vignettes/cvl_zppa.jpg
+  checksum: 5dbb83ec9f88f97f3fe0052c152b4dc71162b9522c0030340efdfabccf6ebc54
+- filename: data/fonds_publics/apercus/etat_major_10.jpg
+  checksum: 67d348d7faf873290dc8383d547e31b9a7fb0bcfab7e5a41bf4d5f6a46132ca9
+- filename: data/fonds_publics/vignettes/verdun_offensives.jpg
+  checksum: 23df2ceb881ba543406423b105be5e902400935df4a16fdd7b4b0ec87f404ae2
+- filename: data/fonds_publics/vignettes/photos_2016.jpg
+  checksum: 08ccaba735cff88c6f09e4547e6197b528ce8d04b267c27307f2ee7dcbd50ae0
+- filename: data/fonds_publics/apercus/sites_classes.jpg
+  checksum: 498b1266c74871f72799315c9fbd13001e4ac0cebdd9540a7dd0504f7325c2d5
+- filename: data/fonds_publics/vignettes/littoral_2000.jpg
+  checksum: b19a917b4e60134d3b106455c73806c0198b40bd8bdcc15161c77c83df4f6873
+- filename: data/fonds_publics/apercus/photos_1950.jpg
+  checksum: 2fb6bbc483a0509b33b80a237a893e9f994b93aff5a01cb6b9f6b7b3e36c2f78
+- filename: data/fonds_publics/apercus/surfaces_en_eau.jpg
+  checksum: 41b151b39d48a14459c0195b9db83a4b98db56a0aab570dbe2f53e84838345da
+- filename: data/fonds_publics/apercus/verdun_mort_homme.jpg
+  checksum: e973029245703f485e42f823dd8505b3390701d5cab6d8a52179b5aaf4226c04
+- filename: data/fonds_publics/vignettes/courbes.jpg
+  checksum: 5769781fcb9e5fd7d79f185dcee3063e1e62bdc5f563f1c199836d3f2bfc57f9
+- filename: data/fonds_publics/apercus/lidar_classes.jpg
+  checksum: 35d3dcff7c466dc5ccdb8ee5e0b65ede850d6eb78d89ed821e3e24ab90d289d7
+- filename: data/fonds_publics/vignettes/routes_chemins.jpg
+  checksum: 77abea5ef674df048c671911f2de8f357bc671c4f20471f910a2c46ed9c64b49
+- filename: data/fonds_publics/apercus/photos_calvados_1955.jpg
+  checksum: cbbba9d6a12ed19d58ccb2c30d5d6a6d2f0f04d536559280517e894f0a1c021c
+- filename: data/fonds_publics/apercus/cvl_zppa.jpg
+  checksum: 661054e68ccf0cb262da2a8b1d2860d0e16797f6066029385bf8d586ac45ed24
+- filename: data/fonds_publics/apercus/bretagne_monuments.jpg
+  checksum: e20eafc6628282ecfefa3c1d217348609007b5d593783a0cc23d41122e9b0bf7
+- filename: data/fonds_publics/vignettes/hdf_monuments.jpg
+  checksum: c5308b63c67151f4fa51660b8bb239d1ed52cd289bea72d0c42f3cf8e4197434
+- filename: data/fonds_publics/vignettes/carte_allemande_voies_ferrees_1917.jpg
+  checksum: e5b3bc20c12e8beb7196aadc1b6ef5db76e8f589dd88cbcb6d14f05056d56741
+- filename: data/fonds_publics/apercus/photos_calvados_1984.jpg
+  checksum: 820575a47ea89e0712f18ef3940903a4a8f2774a77e3e596a3bfc097f6b7918e
+- filename: data/fonds_publics/apercus/strasbourg_photos_1964.jpg
+  checksum: 27a476bd99ea0bdae6229252279d50b583136183f8b7df2d9aab16dd3235a017
+- filename: data/fonds_publics/vignettes/photos_1980.jpg
+  checksum: 259acb9ac6d9b9b79cb82bdda556edf9b05c902d3eb9fd8ba50f934fcbfadfa9
+- filename: data/fonds_publics/apercus/routes_chemins.jpg
+  checksum: d7604eca48c960dd5d8dc91f24faf80208d1075b49dc635c1cfcb0d8e6739e76
+- filename: data/fonds_publics/apercus/cadastre.jpg
+  checksum: 2af205d4f5d570a6774afa0f32b879c8ee89f3f16b6fa65d055a26f0abb11d70
+- filename: data/fonds_publics/vignettes/plan_ign.jpg
+  checksum: eeac1a2ef8a6b0ec1f5877e47d64d082d4e05da0f78518e90e53ecd5a9f4b912
+- filename: data/fonds_publics/vignettes/lidar_classes.jpg
+  checksum: 0ef1afdcd965392fc957c87333dde21a2a894e1a14d4e17ae323c4fd2fa9ea28
+- filename: data/fonds_publics/vignettes/inrap.jpg
+  checksum: a8676978078ff4acc546a6d8b869dc114bc0941aba6908f98b5696591c600623
+- filename: data/fonds_publics/apercus/bretagne_voies.jpg
+  checksum: f6b460b8761a3a4d27ff91f59d761e1671da4a81a550ec5591fb412aea2eb92a
+- filename: data/fonds_publics/apercus/carte_littorale.jpg
+  checksum: 637c9c7640e4abd10887e9ab9e5bfb7c36f727749f75710d8baaf6e27274da7c
+- filename: data/fonds_publics/apercus/bretagne_zppa.jpg
+  checksum: c606abe8c36af56d0d94db12779bcd3f975737b73ef4d3867cebddb305d067d9
+- filename: data/fonds_publics/apercus/etat_major_vecteur.jpg
+  checksum: c4621cdd0c1293557e2dd6d18d16beb66e14ce6cc89dba81cd025e517e4763d1
+- filename: data/fonds_publics/vignettes/verdun_1916.jpg
+  checksum: 00fb7fdb4c2eff32299043fc1d6bb41fc08df74e77dc9051072a1208f6b16cdb
+- filename: data/fonds_publics/apercus/lidar_ombre.jpg
+  checksum: e9e0cefd91e796b52b673d22363f0b108b33b2d1b6fe6f81385aa798ff448f8a
+- filename: data/fonds_publics/vignettes/lidar_hauteur.jpg
+  checksum: 7b4020eb12287e53ca7abcfedb0a7972e87ccbbed7d91f6ac6327a40bbf1574b
+- filename: data/fonds_publics/vignettes/archeo_plu_points.jpg
+  checksum: 0bc3285ebb7011c45f2446a4b2060a8ed41de505abe0b55feed6acd918f4163d
+- filename: data/fonds_publics/apercus/photos_2011.jpg
+  checksum: af9873b1595e383997ab96a5e1ef564d57fc6f2752bb8c422568ec79ee48288f
+- filename: data/fonds_publics/vignettes/verdun_fronts.jpg
+  checksum: 01b3d07bd057e1eb40ed4c27645a234e8ce96381bf0929b398441faf6f0e04c5
+- filename: data/fonds_publics/vignettes/sites_patrimoniaux.jpg
+  checksum: ca07dee96405283207e0cfde4f5da196810da5af697c89cb2f4bf94a4074c0d8
+- filename: data/fonds_publics/vignettes/bretagne_monuments.jpg
+  checksum: 551c505a29724f8bc6561f1f9729d404e7cc68bd254bc370d4f6df1ee513fe02
+- filename: data/fonds_publics/apercus/photos_calvados_1947.jpg
+  checksum: c8ee8edc4cb0b805bf07f0813597748deb0ca7e17131403060b0419a625ad4b5
+- filename: data/fonds_publics/vignettes/verdun_fort_douaumont.jpg
+  checksum: 1e9b2648c47555259ce7b3e1501e002c73790d903038439e8a303a6647364fb5
+- filename: data/fonds_publics/vignettes/photos_calvados_1984.jpg
+  checksum: b6185145a964b18cdb8e98eb4cc8da0466be91d5827cbab4f291883126d52176
+- filename: data/fonds_publics/vignettes/aura_zppa.jpg
+  checksum: a33287fd80ab128c90c5ca11fd6334b275cd087a136b8f566f0fc6bd2d09bab1
+- filename: data/fonds_publics/vignettes/etat_major.jpg
+  checksum: 27a34a5d873cda4d7bdd3813f1ae3eb3fc7abfb035c341c50a4a77a5c8143185
+- filename: data/fonds_publics/apercus/cosia.jpg
+  checksum: 045e468ff30c8204a18b5602884502042e4d03f4ced22cc45d3020d664fca054
+- filename: data/fonds_publics/vignettes/forets_anciennes.jpg
+  checksum: 8e95458183e3d631e59f13520cb6d22ce67f73c36f588b7840f4d0cdface78de
+- filename: data/fonds_publics/vignettes/etat_major_vecteur.jpg
+  checksum: c85aa2ec0b3572eebd48419f74b9ba5bb1a0d5f33c58fbc07039510db3165d97
+- filename: data/fonds_publics/vignettes/verdun_douaumont.jpg
+  checksum: ecc1f95554efb5d9864eed545db518c50863a7ec2f948753d814492b345fd78c
+- filename: data/fonds_publics/vignettes/terrier_corse_2.jpg
+  checksum: aac4e8aa1999ea359a026919567ab99a017f8e6fe462eca67f0b188ea825cd96
+- filename: data/fonds_publics/vignettes/parcelles.jpg
+  checksum: f3c8f904b98fa5360c7296cfec59429599a468a8f44a630c213ebf3dc2188eee
+- filename: data/fonds_publics/vignettes/surfaces_en_eau.jpg
+  checksum: a736093680255724f007249910627a7288be0a2de06f5a43592bb86cdcf03c98
+- filename: data/fonds_publics/vignettes/ocsge_usage.jpg
+  checksum: da3466d16601786dd78bb2bb80d671e576042a2feb9ae941de3dd86acf0ff49e
+- filename: data/fonds_publics/apercus/plan_ign.jpg
+  checksum: b59094418fb3971abe960924b2b422879d8ba3643b3efce10abf4b8797fe52cc
+- filename: data/fonds_publics/vignettes/photos_calvados_1947.jpg
+  checksum: 5c8d31a3e7f2663added8f5c9a57b965bae7b88ebb68c956693db7aed3987e62
+- filename: data/fonds_publics/vignettes/estompage.jpg
+  checksum: a74c05d9e626d17c1930578b469cf007b538bd0eca8b03de009ff7b9b02c3348
+- filename: data/fonds_publics/apercus/cours_eau.jpg
+  checksum: b4daca77de53c5ce979b80162179b0d4f927976fe320ac465f4ecc4d2b0ac4a5
+- filename: data/fonds_publics/apercus/cassini.jpg
+  checksum: f5bcba6ae2d8a2caa10dfd5ddc9ac3b7c8a909532e29f8377d10306a30fbb389
+- filename: data/fonds_publics/apercus/verdun_douaumont.jpg
+  checksum: 7fbec0cfb3d58137154e73a31072b4842cd7202abd7241d65ad746b279ccb8d3
+- filename: data/fonds_publics/vignettes/verdun_defenses.jpg
+  checksum: d6572fb071edc647f34c962a52832d06a9a96bc885413684c815d62e998a02c3
+- filename: data/fonds_publics/vignettes/zones_activite.jpg
+  checksum: cdf0a31ed2fdcdbb33f753f5e81dfe0f90b4ac4dda69b5b723f531a63398f5e6
+- filename: data/fonds_publics/vignettes/photos.jpg
+  checksum: 02282aa21ba253152dd289eb659a23d2bd7b8227128a8cf7f500854952af4392
+- filename: data/fonds_publics/vignettes/cassini.jpg
+  checksum: 18ac5acd6cfa4dde8028ac26eb6c80e6bacd4264b7c1e5e07fb007d341c4cedc
+- filename: data/fonds_publics/apercus/geologie.jpg
+  checksum: 61b018a9e105e7afc5e2eb61121687495dc16c43442eb72329067a23dd9e3b75
 - filename: tests/fixtures/arbre_analyse.qgs
   checksum: d269db5941e7cc12f148046e6d6576e10b6107d558347b942234e0efdce49dd0
 - filename: src/pipeline/modes/existing_mnt.py
@@ -38,7 +358,7 @@ fileignoreconfig:
 - filename: .githooks/pre-push
   checksum: c3ba1eb42246b032f6a556dd8813efdeab7151044c6e9942a252822ca56905da
 - filename: CLAUDE.md
-  checksum: 5e01460cfa92affada8cb3d735206101106b5c5fd783bb618ce0b32306c22cdb
+  checksum: 3dee27f976e41edff0e53130f7ee732279d9389abf8d7e556418e735dc6b472c
 - filename: README.md
   checksum: 826fc2543c11864d1ae91f39c5af8c3616d9bac649d2a1d2337a3ffc6b863ee5
 - filename: dev/docs/documentation_utilisateur_v1.docx
@@ -58,11 +378,11 @@ fileignoreconfig:
 - filename: src/app/run_context.py
   checksum: 9843bdd07ca31d29f02035759b468f13b7194c01cbbabd64778fbd711f520f44
 - filename: src/app/services/fiabilite.py
-  checksum: 2a2bd4cb867e4b1f92392fd116fe1ead8e5817c37ebbdf5acf5277af720d014c
+  checksum: 90d6b8f35d92fdf177478b9a067ec731c9ef1c1e3617a1ee28d2190642ddb767
 - filename: src/app/services/finalize_service.py
-  checksum: eb6a9cd633d29027193c39b035ad2359b32a71b2e0ad722376e4323d54760d07
+  checksum: ffaceb6fce2c68976be5eb830a4d37dde983cffd99156b9fa7f38cf6db6d8e92
 - filename: src/app/services/indices_model.py
-  checksum: f18a1a5ecd866ac7ef0c80f8b5cd8608685dd71201e15e57ca7f04c9ac5e0682
+  checksum: 97dac499e334628db02cdf1a39e4342610245d6b8f8049ea22c3c3a4365096c7
 - filename: src/app/services/model_orchestrator.py
   checksum: 70f55ab3b85ceefbe967d1d2d9b7749a9df839231a86c99b144eaacd1395b11c
 - filename: src/app/services/proxy_config.py
@@ -72,7 +392,7 @@ fileignoreconfig:
 - filename: src/app/services/source_modes.py
   checksum: 1dc7abbbee310c3ca7472d3daef79545f85d66a490114cf29e96171a241b7471
 - filename: src/config/config_manager.py
-  checksum: b550e8e7a766a0736d9ec3b536326e2857e83ad5a06c0bdad2aa3169e07aeb9c
+  checksum: 6906cb7a33dac1c4bce3641f8be783cd6ad183dbf2897028c109da8c06ccc73e
 - filename: src/pipeline/coverage_polygons.py
   checksum: 8af2d1c7973b36884a4615f57e4c2abbbcd4bd3757ab48ed3a2bbe0840516e37
 - filename: src/pipeline/cv/alignment.py
@@ -98,7 +418,7 @@ fileignoreconfig:
 - filename: src/pipeline/ign/coords_fallback.py
   checksum: b1997408c2011b138fc5ffc525a10fa88a37848ffa763f355892b9d5dd0c1450
 - filename: src/pipeline/ign/downloader.py
-  checksum: c1c65de72ee16ba19f953c361edfa284a73c07a4a03b4855ca62ec1ee87b287e
+  checksum: 3e9b3d74856a35df02f9b4ac3952f6ddb2d5f8cfb67d638b766c82750613c84b
 - filename: src/pipeline/ign/pdal_validation.py
   checksum: 2b4ed1d8b7ed8b47c769214f73f1898b79a26b2fdddfea938b003423488462af
 - filename: src/pipeline/ign/preprocess.py
@@ -120,27 +440,27 @@ fileignoreconfig:
 - filename: src/ui/icons.py
   checksum: df0d068fd896cf1361d0a6286e537fc015e473c5bc58924f9d79c3813df543b0
 - filename: src/ui/layer_loader.py
-  checksum: bee4485c5bf46248a56c013b739f671cca52f9e597f279431a52b7427995a0e1
+  checksum: eba5af15cc839898fde2cc212a7f222f41f898eea3af7146239d5444aa49f87d
 - filename: src/ui/map_tools/tile_picker_tool.py
   checksum: 54f1e09233be20b03558ae316ea804f793a795112149ef19584b552aaaeeed26
 - filename: src/ui/qgs_writer.py
-  checksum: 25e7c535b8095c95a9e51ad2d3a8e3300518e3af59b5d9ba36300fe1f4b965b5
+  checksum: e4c1df856a968d5975380f5fb140e9904d72ec5ccf6467bca4145f345ed6e8db
 - filename: src/ui/steps/step_1_source.py
-  checksum: 188659a6df3d476de9a2b48f4e2df9bfaf5d32c2f8302ac50f17123ab15c356e
+  checksum: b043ad23539c33af1ea427cd4d3a19f71a219b494c3c470854d2f4b11692ba16
 - filename: src/ui/steps/step_2_indices.py
-  checksum: 63fe585e6fddbf566678a8aebe584e69fa73c443e5fee88b116c1e202364aa49
+  checksum: 04ec061aac81ca3cdc4c1c38b72db22223c8f770d1fc8da4197e0a08590561f4
 - filename: src/ui/steps/step_3_detection.py
   checksum: 543e58036f3be5bc5e044cccd8f2e8dd7c6108a552c7c56005fc7fc2b669d1a8
 - filename: src/ui/steps/step_4_launch.py
-  checksum: d0fb29d99428139bf7286e008ebda32142f647d70f208d6646286176ba8b3a45
+  checksum: 3b6a9a3c3e3b6b7de1adcaaf74152a0f6483e712380c885060eeb7428795cb93
 - filename: src/ui/theme/v2.qss
-  checksum: ff9daeadfa74083572a879e7abd22a4c2f82c185d0381c614692814840052a7c
+  checksum: 3b9feab861833f27ad73d478521242d9dab4c8407d25724dea8d3ade40c0b4a2
 - filename: src/ui/widgets/entity_card.py
   checksum: e4cfcd4527dd4fa24c315215fb5391cfdd96a3f29893ab5edb4050c4b767bac3
 - filename: src/ui/wizard_dialog.py
-  checksum: 28265150c06a3b7b1aa695a23d54d27d98238fc53836c3766340055e3253c9de
+  checksum: 0c9023757dd2cd6126535cfd2202a405d8b2f7d8640bbc8cfb1e7334b67b3f05
 - filename: tests/TESTS_MANUELS_QGIS.md
-  checksum: aa855ce8254946ad847678be0c5bd8db3703ec140d57725dc711367c3f97d773
+  checksum: 6abe289f2dc6576777b90b11ed202810459950a9306110cd589a903c1c33a7b0
 - filename: tests/integration/test_existing_mnt_runner_finalize.py
   checksum: 09edbe48be7d273624e9d95354e3273c07a648491880cdb33c590782900510db
 - filename: tests/integration/test_existing_rvt_runner_isolation.py
@@ -152,7 +472,7 @@ fileignoreconfig:
 - filename: tests/unit/test_config_example_sync.py
   checksum: 78a091e0da89158fb0771fa935e94cd3aa2056cc35cfb067177202de40bfcd63
 - filename: tests/unit/test_config_manager.py
-  checksum: 0a08e1cd2fa3a2dc686a467964e408c5c7c18586846772a86df91ec7adeca489
+  checksum: 74f3772c23d317a1078b0b30b039ab2bbd34c4caf6b827d2e16cd0a85a3df9d7
 - filename: tests/unit/test_config_settings_dir.py
   checksum: 46dada346835b83644799296b22a2cfea633575217dfbd36d9eab18d34c5613b
 - filename: tests/unit/test_download_cancel.py
@@ -172,7 +492,7 @@ fileignoreconfig:
 - filename: tests/unit/test_finalize_service.py
   checksum: 111e9a00e0eda44085476f13de53eaf4a10f97279b37051045cacba909d7b969
 - filename: tests/unit/test_indices_model.py
-  checksum: c73d398fdb224ce33d5472f87ea804b8abf2aa21a978991fb32e8c895c18624b
+  checksum: 2b960d320cd27a02887087fc397fb60152d946dc7ee7ed5a13aa9eef401552c9
 - filename: tests/unit/test_ingest_plan.py
   checksum: d295d7ed4506a8ab23703004a0c92793710046e5f2b000a365f20981db77612d
 - filename: tests/unit/test_model_orchestrator.py
@@ -208,11 +528,11 @@ fileignoreconfig:
 - filename: dev/demo_comite/build_thumbs.py
   checksum: 0359ea8bcbbcacd1720070d74f869b08143bceaebdcca969f37a129ccc233ede
 - filename: tests/unit/test_visu_catalogue.py
-  checksum: d48a25e4c75b096047ef0aed90f0b16a2eee0551ab036379a94d06414f432d3c
+  checksum: 71634792ff3d0da75f6a74b37ca61c180d299071c71c40058f90bd684a7a4eac
 - filename: src/ui/visualisation_tab.py
-  checksum: 7e89a8540ed55495e9212c22117b6d9b6739bce41d424f5ed5c18ddb06735ea8
+  checksum: c8c0b896a39478403566879c77ce15b2544c983d880dd07c847b8a3c63b88581
 - filename: src/app/services/visu_catalogue.py
-  checksum: d836cf58018a95fdeeefcefc35181bca26f67c917471d5b2359dfe4429bf9979
+  checksum: afdad3e8df70af53706452621ad9a55827885ca89e64da1862e56b3d409a8227
 - filename: src/ui/widgets/indice_card.py
   checksum: 06132cfabbad865873948a477ad1bf331a7460290d819a73134e7ecacd37d3c6
 - filename: data/demo_catalogue/thumbs/CVAT.png
@@ -260,25 +580,25 @@ fileignoreconfig:
 - filename: aide/01-installer.md
   checksum: 3fb722fa7b9051fbdaffdd01c12e8f1afa2abb724836bb3a521086837842d699
 - filename: .claude/commands/livraison.md
-  checksum: 498e642842583cf7d377223b7bfe16da0f82042b4a442d88e05ae3542ecf1d65
+  checksum: 535157e1d41300a87bf85911afaf6edbf2e6ee0955a136f4231abb3adbaf94b8
 - filename: aide/08-resultats.md
-  checksum: 681ed560e51ec1bba5a41162508a5059eac3efea4a96e28a61b2f05bb28b6227
+  checksum: 7763dc3c8faf99cb2849440bc040ed4a3d68024646b750d00d82aaf2e68817ca
 - filename: aide/04-etape-2-produits.md
-  checksum: 4b048b15022f9e67dc405b0544e2dedb936f1dda00758f6f064e095c50a6a87e
+  checksum: 389a6e18cffaad8c6d2a80460aa9c1995f1ffe88c5e97d4acb5cca42e4e5ff9a
 - filename: aide/09-depannage.md
   checksum: 7dc40e7ae5c1906c1a2fb3a0730af0f54de6c6aca8dffbc6a800e27ab6130b07
 - filename: src/ui/widgets/carte_zones.py
   checksum: acb325e398a8bb1c2e2480257b1bc967a563693f9c8c2f0a02f6204b5209f874
 - filename: tests/unit/test_aide.py
-  checksum: a018c055d4f6c0deb1e757cd49d123583079d0d32d64d94a6ee2444bced95dba
+  checksum: 0b941f2984885412dc60df64672a4e81238dc1a48c4a735645c34130538fe6a9
 - filename: aide/img/resultats-legende-fiabilite.jpg
   checksum: d27f3aeebfb1b815ba64ddd4ef2cfe5ffe845108f263e1310760f6d8c0d1246a
 - filename: aide/img/etape3-detection.png
   checksum: a734047e51230ecea071199bc7d5facc44e1e744603bd4b2ca06154685d1217c
 - filename: aide/img/etape2-fiche-produit.png
-  checksum: 30dbde61217e93f3543990c53a9398cef12f4458cbf12e6512ff6912e75b4004
+  checksum: 2f23dd3b1784aca4cb50884cc0cf8eeab6d0dd107c762543f381a19e6e06d096
 - filename: aide/02-premier-traitement.md
-  checksum: f769d06311dac09622508c97b2dd6cba8ea0ffd749b89c20c403859dc50fa52e
+  checksum: 5fd0baf3201533680f8eece02d7ce9bd0f52b0b93a3a6a5be3177fc29893aa85
 - filename: src/ui/dialogs/aide_dialog.py
   checksum: cf3961f1ed97e4798dfd37a910ba03359f0d8423588776b9b09dca94e92037ac
 - filename: dev/build_quadrillage_from_wfs.py
@@ -296,25 +616,25 @@ fileignoreconfig:
 - filename: tests/unit/test_rapport_run.py
   checksum: 1ba3d35a59691c345b4583b0cbd381d9c6bb41b80919049f1ece9f0fc7a63023
 - filename: tests/unit/test_bilan_fiabilite.py
-  checksum: d74fb9642159deb862872f3e6a102c95e33bb6c120a3fcfb1380f6e9d956742c
+  checksum: edb3bc84fbec36c49b3baeb338c6fd520a5a19e7949b09a6688ee02040d58ad2
 - filename: aide/img/etape3-fiche-classe.png
-  checksum: 366d3e4d8f21219753142e13983ffb77d14f6c33ade117776e465ad6192af1b6
+  checksum: 9871007c2c0df9fc9876dc45e10a5205b504ffb2a3583898ae862f96c4c288d5
 - filename: data/third_party/cv_runner_onnx/windows/build_info.json
-  checksum: f1ca9b860b1ab18006785fe1a78a1606462c711fb92dfd5c666eae43108efd92
+  checksum: a14d4acd1854949248f2fa78332a1e6760bc096d4daa0c1fe43b529769395d93
 - filename: dev/rendu_hors_ecran.py
-  checksum: 5de0b65cd849efdd0a6a9000218f1cd1a92eb229b165077bee70101abebf1860
+  checksum: 2bbaa7f06241673f81a225b9615098017532660c78199fae9c95109229143d9c
 - filename: aide/img/etape2-produits.png
   checksum: 33dd6625c569d5ba7342b0c042468adf2fb5e91c133c9ce823ae7f40b87e5bfc
 - filename: aide/img/etape4-verifications.png
-  checksum: af3df946a75008b54b3221c306db2015e5e2ef8d9f32cc87a24741101b6433fe
+  checksum: 921837f978085f0b4e309832213cba6c6f336a6226c33f8969f79f853bc42579
 - filename: src/pipeline/ign/quadrillage_paths.py
   checksum: 0fd8b8538bdf7e6517d67ea484aaf266e98a4e32b717715ddd4186ce46d69b85
 - filename: data/quadrillage_france.zip
   checksum: 1f1e8fa33e11224b1236ee9f577f404f4e5a9784f413dce8fc55099631728e52
 - filename: src/pipeline/ign/products/rvt_embarque/NOTICE
-  checksum: 3834ab3af2bfce2a5f2162fde5df36a1ef6143949e6c3c52a6044dd87a62c2e8
+  checksum: 2093b71a8b36c33be1bba88e4435cb60afad13e0630502b376c08747d94d0b1c
 - filename: tests/unit/test_rvt_embarque.py
-  checksum: 0f2ebfb23762e3e9d0a3a8f103246748c7d95ff7794af86b4df3e9577d6cffb9
+  checksum: f08679593e23bdd202081014ad821c4b6797660c668465a463b00ecfe61ab9ac
 - filename: src/pipeline/cv/runner_cache.py
   checksum: fb5c5cd4de3f0acd9f5f755e4c745df4cb754f6e2041bd4b89200305f7ebabd5
 - filename: tests/unit/test_detection_impossible.py
@@ -350,7 +670,7 @@ fileignoreconfig:
 - filename: src/pipeline/ign/products/rvt_naming.py
   checksum: da985279b4bc23fe606dbb223d1a98a5211fc7a4c3ee8320d6de7b58b0f8f844
 - filename: src/pipeline/ign/products/rvt_embarque/vis.py
-  checksum: 21693f113e1be2a2230b7f5b88e245b4a8bab418148107e951ecf89a042be07b
+  checksum: 6a92da0360c6ad91ba1d8db8653fc0e7d8c8d50f719e475f4024769d5a0faa67
 - filename: src/pipeline/ign/products/rvt_embarque/default.py
   checksum: 3757e8928c95fd7bccbdfce7dd6249154a0d7da2df5d530b548d441e27418e04
 - filename: tests/unit/test_fusion_filtree.py
@@ -368,13 +688,13 @@ fileignoreconfig:
 - filename: aide/05-etape-3-detection.md
   checksum: e4714fd17a346a8b457591895c8ee83fa8a94357c29ca017092968b81c02b754
 - filename: aide/06-etape-4-verifications.md
-  checksum: 816b04422491cab8d0879aebea13c8e1361cd9a8600bae68c3ea935d842a9f3a
+  checksum: 9734cdd8dd29e9b49a2b6cf56fb93ffd678dded400852f87458a53682f89f77e
 - filename: dev/hooks/stop_tests.py
   checksum: f22e43c204e6f391fb1353ab5103c3a14039639c92e7da73b0a9063e45b547aa
 - filename: docs/model_contract.md
   checksum: 3438c00bde33e3cf862756e1b48a3a6bab100a8aa02ea96d02e1ee0909b231ed
 - filename: tests/unit/test_fiabilite.py
-  checksum: 876d34f7f6fe75dfbb9cb56979e970c8df5eb0728c136e63200c2cef78e033a1
+  checksum: 264f36a29d2cda1ff00181e0f9ff152fd3b6e6ae6e5a62db84ae2d77cee0154d
 - filename: tests/unit/test_postprocess_geo.py
   checksum: d6f38e1c40691f4616417eebbbe0f152c9fdfe590ed39cab31b27107b06d43b7
 - filename: tests/unit/test_mnt_repli.py
@@ -400,17 +720,17 @@ fileignoreconfig:
 - filename: src/app/services/sorties_prevues.py
   checksum: 3ded5ec72803f9b6c4994357cecdd9cfbea602e9e0c84be63a23b85c0c58a219
 - filename: aide/07-etape-5-traitement.md
-  checksum: dce6c7bbdeb7dccf3fcadb4fbc741be9df46f9e3313f289f361fb020a7386009
+  checksum: a995018a6f30fa7a65c8401be99c2ad719f589fa985ec304966f1e6136884408
 - filename: tests/unit/test_sorties_prevues.py
   checksum: b25f3282553a6d5fe6ecfee0eec124a5a73dc44fff637e14c7883d972ab976df
 - filename: src/app/services/vocabulaire.py
   checksum: f9f2c4ff0a3137c45fe85324e6729d7e6823d710f55b69a71c00346f9b3f29f2
 - filename: aide/03-etape-1-source.md
-  checksum: be52b23641fc00132e5a4edaa0aaa69908d1431c4992a89f152b97c9cb72e9f8
+  checksum: cbab539c441333606b962679ac03052e6f1b2f03b65f0e0025fb1ecaf7fa135e
 - filename: tests/unit/test_vocabulaire.py
   checksum: 0b4cbc2973f5b953d252b060d9ebd98eabcaf5656b88d508c68ea04e03beb662
 - filename: src/app/user_narrator.py
-  checksum: 84378c02130211647faa3a2fc92972e5718970c23c191f45f898278f206f64b9
+  checksum: 4b01a1880df997e1899081f683df158de8c69cd29c38079729fc937b83e4e879
 - filename: src/ui/widgets/stage_button.py
   checksum: 905e2324563a29a6145ac92d0f2b0cba09c2c703dbbeeac881e646ad4265d32c
 - filename: src/ui/widgets/stepper_rail.py
@@ -420,7 +740,7 @@ fileignoreconfig:
 - filename: aide/10-glossaire.md
   checksum: d08f8d9f0f7e5ec7265004b5131c4538f8e1982ad243784a29d3225e6de7dd87
 - filename: dev/recette_auto.py
-  checksum: 40f004cbfe1f10191e259b66f5c01790284e3e949a69dba4c30abe4c64abe8da
+  checksum: 6b820982b9ad52d2077efd807a7ae8d20c3c71a5386cb5dd03accab6c87aed31
 - filename: aide/img/etape6-resultats.png
   checksum: 5afe2a1b6f337b2c410e24f55a19f2a6c76b6d7d14b3568bee5aa6a3712f8032
 - filename: src/ui/widgets/entity_row.py
@@ -444,7 +764,7 @@ fileignoreconfig:
 - filename: src/app/services/cv_post_service.py
   checksum: 57345307700503278bbbeb43c0152f2b701521203da6cd85aa34cdc0b7282c39
 - filename: src/app/services/rapport_run.py
-  checksum: eb0236e2332f34979e5f0d8094dd21f32a3fa590079c734316ef4fbec97938a2
+  checksum: ef98d7d26beb5b7375b99390c9d679304640ac4662a71871ea62982b3a4573a6
 - filename: tests/unit/test_durees_une_source.py
   checksum: 8ee11f714b13423944e89e5d847350fee0019da10507aecb472535fd92d37b50
 version: '1.0'

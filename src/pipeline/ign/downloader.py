@@ -269,6 +269,10 @@ def parse_ign_input_file(input_file: Path, sorted_output_file: Path, log: LogFn 
                 filename, url = line.split(",", 1)
                 filename = filename.strip()
                 url = url.strip()
+                # Un nom sans extension de nuage (``nom_pkk`` de la grille IGN repris à la main) : PDAL
+                # refuserait le fichier (« Cannot determine reader ») ; le nom vient alors de l'URL (2026-11-19).
+                if not filename.lower().endswith((".laz", ".las")):
+                    filename = Path(urllib.parse.urlparse(url).path).name or filename
             else:
                 url = line
                 # Extract real URL from wrappers (urldefense, SafeLinks, etc.)

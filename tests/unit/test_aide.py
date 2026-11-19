@@ -260,3 +260,11 @@ def test_chapitre_consulter_les_flux_suit_le_drapeau_de_l_onglet(monkeypatch):
     for f in sorted((RACINE / "aide").glob("*.md")):
         if f.stem != "10-consulter-les-flux":
             assert "consulter-les-flux" not in f.read_text(encoding="utf-8"), f.name
+
+
+def test_le_manuel_ne_decrit_pas_la_page_relief_par_zone():
+    """Décision du 2026-11-19 : la page « Relief par zone » reste cachée dans le plugin publié (aucun catalogue
+    de flux dans le ZIP) ; le manuel ne la décrit pas, capture comprise, tant qu'elle l'est."""
+    for f in sorted((RACINE / "aide").glob("*.md")):
+        texte = f.read_text(encoding="utf-8")
+        assert "Relief par zone" not in texte and "img/consulter-les-flux.png" not in texte, f.name

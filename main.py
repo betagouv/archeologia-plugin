@@ -40,6 +40,10 @@ class ArcheologiaPipelinePlugin:
                 self.dialog.request_cancel_if_running()
             except Exception:
                 pass
+            try:
+                self.dialog.liberer()
+            except Exception:
+                pass
         self.dialog = None
 
     def run(self):

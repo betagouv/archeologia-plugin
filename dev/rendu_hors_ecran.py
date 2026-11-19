@@ -425,7 +425,7 @@ def _etape6(app, w, img: Path, log) -> bool:
 
 
 def _consulter_flux(app, w, img: Path, log) -> bool:
-    """aide/img/consulter-les-flux.png : l'onglet sur un catalogue fictif (départements neutres,
+    """Contrôle de la page « Relief par zone » sur un catalogue fictif (départements neutres,
     vignettes du poste si présentes) — jamais le catalogue local, qui porte des zones de test."""
     from archeo.src.app.services.visu_catalogue import CatalogItem, Catalogue, Department
 
@@ -454,11 +454,17 @@ def _consulter_flux(app, w, img: Path, log) -> bool:
     visu.montrer_page(1)                      # page « Relief par zone »
     for _ in range(6):
         app.processEvents()
-    w.grab().save(str(img / "consulter-les-flux.png"))
+    # Pas de capture : la page « Relief par zone » reste cachée dans le plugin publié et le manuel ne la décrit
+    # pas (2026-11-19). Le contrôle de la page, lui, reste.
     log("consulter les flux : départements", len(visu._catalogue.covered), "| vignettes :", vignettes.is_dir(),
         "| mur :", visu._wall_title.text())
     relief_ok = len(visu._catalogue.covered) == 4 and visu._wall_title.text() == "Côte-d'Or"
+    # Les fonds de carte tels que les voit un poste livré : sans catalogue de flux, pas de barre de pages
+    # (2026-11-19 : la capture montrait « Relief par zone », absent du plugin publié).
+    barre = visu._page_btns[0].parentWidget()
+    barre.setVisible(False)
     fonds_ok = _fonds_de_carte(app, w, visu, img, log)
+    barre.setVisible(True)
     tabs.setCurrentIndex(0)
     app.processEvents()
     return relief_ok and fonds_ok
