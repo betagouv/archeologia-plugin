@@ -1428,3 +1428,12 @@ Automatique : `tests/unit/test_contexte_croisement.py`, `test_contexte_moderne.p
 - [ ] **83.3 Patrimoine** : près d'un monument historique (ou en Bretagne, dans une zone de présomption), une détection de toute structure porte « site connu à proximité : … » ou « site connu : dans la zone … » dans `contexte_info`, jamais dans `contexte_moderne` ; `contexte_source` dit « données publiques » ; en Moselle, le journal ne cite aucune zone de présomption régionale ; « Ajouter le contexte moderne » ajoute les données de patrimoine qui ont servi.
 - [ ] **83.4 Réservoirs, épuration, terrains de sport, parkings** : un enclos ou une dépression posé sur un bassin de station d'épuration, un réservoir, un terrain de sport ou un parking dessiné (≥ 10 % recouverts) passe dans « Contexte moderne » (« station d'épuration recouvrant N % de la détection ») ; sous 10 %, il est seulement informé.
 - [ ] **83.5 Carrés symboliques** : ajouter « Équipements de transport » (Catalogue des flux) près d'un parking dessiné en carré de 5 m ; une détection qui contient le centre du carré est grisée, « parking signalé dans la détection (emprise non dessinée par l'IGN) » ; une détection à côté (centre dehors, à moins de 15 m) n'est pas grisée et porte « parking signalé à N m … » (révisé le 2026-11-19 : le carré compte comme un point).
+
+## 84. Catégorie « Écartées », petits enclos, enclos sans trou (2026-11-19) ⭐ P0
+
+Automatique : `tests/unit/test_ecartees.py`, `test_enclos_sans_trou.py`, `test_min_area_exemption.py`. En séance, sur Rambouillet (dalles 0605_6843, 0605_6844, 0606_6843, 0606_6844), Enclos coché :
+- [ ] **84.1 Libellé** : la catégorie grise de la légende s'appelle « Écartées » (plus « Contexte moderne »), décochée ; le bilan « Par où commencer » a une colonne « écartées » et le sous-titre dit « N à examiner, M écartées ».
+- [ ] **84.2 Petits enclos** : étape 3, l'aire minimale des Enclos vaut 50 m² par défaut (« ↺ » y revient) ; à la fin, la détection de 8 m² vers (606 000 ; 6 843 000) est dans « Écartées », au survol « Écartée : surface de 8 m², sous le minimum de 50 m² » ; rien n'est supprimé du GeoPackage (`ecart_taille`).
+- [ ] **84.3 Contexte moderne toujours là** : une détection sur un bâtiment ou un bassin reste dans « Écartées », avec sa raison « Contexte moderne : … ».
+- [ ] **84.4 Enclos plein** : l'enclos d'entraînement vers (606 332 ; 6 843 530) n'a plus de trou (contour seul, sans anneau intérieur).
+- [ ] **84.5 Ancien traitement** : un dossier sans `ecart_taille` s'ouvre comme avant, sa catégorie grise s'appelle « Écartées ».

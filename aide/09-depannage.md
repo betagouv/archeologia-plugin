@@ -103,7 +103,7 @@ Relancez ensuite dans le même dossier : les produits déjà calculés sont cons
 - Au moins une structure est cochée et couverte par un modèle : la carte **Ce qui sera analysé** le dit.
 - L'indice requis par le modèle est coché à l'étape 2 : le sigle sur la carte de structure est orange sinon.
 - Le seuil de confiance de la structure n'est pas trop haut : baissez-le pour diagnostiquer.
-- Une structure dont toutes les détections sont écartées par le seuil ou l'aire minimale ne produit pas de couche : ce n'est pas une erreur.
+- Une structure dont toutes les détections sont sous le seuil de confiance ne produit pas de couche : ce n'est pas une erreur. Celles sous l'aire minimale restent, dans la catégorie **Écartées**, décochée : cochez-la.
 
 ## Les couches ne se chargent pas dans QGIS
 

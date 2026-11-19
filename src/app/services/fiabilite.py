@@ -357,6 +357,8 @@ def maptip_html(cats: Sequence[Categorie], modele: str, structure: str = "") -> 
                 "concat('<b>Contexte moderne</b> : ', attribute($currentfeature, 'contexte_moderne'), "
                 "if(coalesce(attribute($currentfeature, 'contexte_source'), '') <> '', "
                 "concat(' (', attribute($currentfeature, 'contexte_source'), ')'), ''), '<br>'), ''), "
+                "if(coalesce(attribute($currentfeature, 'ecart_taille'), '') <> '', "
+                "concat('<b>Écartée</b> : ', attribute($currentfeature, 'ecart_taille'), '<br>'), ''), "
                 "if(coalesce(attribute($currentfeature, 'contexte_info'), '') <> '', "
                 "concat('À noter : ', attribute($currentfeature, 'contexte_info'), '<br>'), ''))")
     return (
@@ -446,7 +448,7 @@ def write_sidecar(gpkg_path: Any, layer_name: str, entree: Mapping[str, Any]) ->
 def recompter_ecartes(gpkg_path: Any) -> None:
     """Écrit dans le sidecar, à côté des ``effectifs``, les ``ecartes`` : par niveau, le nombre de détections
     que le contexte moderne a grisées (champ ``contexte_moderne`` rempli). Le bilan « Par où commencer » les
-    montre à part (2026-11-12). Appelé après le croisement ; champ absent → la clé est retirée ; lecture
+    montre à part (2026-11-12). Aussi les détections sous l'aire minimale (``ecart_taille``, 2026-11-19). Appelé après les filtres d'aire (par :func:`recompter_effectifs`) et après le croisement ; champ absent → la clé est retirée ; lecture
     sqlite3 seule, GeoPackage illisible → sidecar laissé tel quel."""
     import sqlite3
 
@@ -470,11 +472,14 @@ def recompter_ecartes(gpkg_path: Any) -> None:
             entree.pop("ecartes", None)
             if couche not in couches:
                 continue
-            if "contexte_moderne" not in {r[1] for r in con.execute(f'PRAGMA table_info("{couche}")')}:
+            presents = {r[1] for r in con.execute(f'PRAGMA table_info("{couche}")')}
+            champs = [c for c in ("contexte_moderne", "ecart_taille") if c in presents]
+            if not champs:
                 continue
+            test = " OR ".join(f"coalesce(\"{c}\", '') <> ''" for c in champs)
             entree["ecartes"] = {str(k): int(n) for k, n in con.execute(
                 f'SELECT "{CHAMP_LABEL}", COUNT(*) FROM "{couche}" '
-                f"WHERE coalesce(\"contexte_moderne\", '') <> '' GROUP BY \"{CHAMP_LABEL}\"").fetchall()
+                f'WHERE {test} GROUP BY "{CHAMP_LABEL}"').fetchall()
                 if k is not None and str(k)}
     except sqlite3.Error:
         return
@@ -524,6 +529,7 @@ def recompter_effectifs(gpkg_path: Any) -> None:
     finally:
         con.close()
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    recompter_ecartes(gpkg_path)          # les écartées par la taille, même sans contexte moderne
 
 
 def read_sidecar(gpkg_path: Any, layer_name: str) -> Optional[Dict[str, Any]]:

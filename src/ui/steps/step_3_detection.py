@@ -385,6 +385,14 @@ class DetectionPage(QWidget):
     # ------------------------------------------------------------------
     # Rafraîchissement
     # ------------------------------------------------------------------
+    def _aire_defaut(self, model, eid: str) -> float:
+        """Aire minimale par défaut d'une structure : celle du catalogue (50 m² pour les enclos, 2026-11-19),
+        sinon celle du modèle — la même règle que l'orchestrateur."""
+        aire = next((e.min_area_m2 for e in self._catalog if e.id == eid), None)
+        if aire is not None:
+            return float(aire)
+        return model.default_min_area if model else 0.0
+
     @staticmethod
     def _default_conf_entite(model, eid: str) -> float:
         """Défaut de confiance affiché pour UNE structure.
@@ -505,7 +513,7 @@ class DetectionPage(QWidget):
                 cluster_outputs=cluster_outputs,
                 cluster_on=eid in self._cluster,
                 default_confidence=self._default_conf_entite(model, eid),
-                default_min_area=model.default_min_area if model else 0.0,
+                default_min_area=self._aire_defaut(model, eid),
                 conf_override=ov.get("confidence_threshold"),
                 area_override=ov.get("min_area_m2"),
                 is_derived=is_derived,

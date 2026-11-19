@@ -41,7 +41,9 @@ def test_non_exempt_layer_filtered_and_empty_gpkg_removed(tmp_path):
     p = tmp_path / "parcellaire.gpkg"
     _write_layer(p, "parcellaire", 80.0)
     _filter_gpkg_by_min_area([str(p)], min_area_m2=500.0)
-    assert not p.exists()  # couche vidée → GeoPackage supprimé (existant)
+    # 2026-11-19 : marquée « Écartées », plus supprimée ; le GeoPackage reste
+    out = gpd.read_file(str(p), layer="parcellaire")
+    assert len(out) == 1 and out.iloc[0]["ecart_taille"] == "surface de 80 m², sous le minimum de 500 m²"
 
 
 def test_tagged_source_features_survive_min_area(tmp_path):
@@ -61,5 +63,7 @@ def test_tagged_source_features_survive_min_area(tmp_path):
     gdf.to_file(str(p), layer="Linéaments sources", driver="GPKG")
     _filter_gpkg_by_min_area([str(p)], min_area_m2=500.0)
     out = gpd.read_file(str(p), layer="Linéaments sources")
-    assert len(out) == 1
-    assert out.iloc[0]["enclos_id"] == "enclos_0"
+    assert len(out) == 2                                            # rien n'est supprimé (2026-11-19)
+    tague = out[out["enclos_id"] == "enclos_0"].iloc[0]
+    assert tague["ecart_taille"] == ""                              # le fragment tagué n'est pas écarté
+    assert out[out["enclos_id"] != "enclos_0"].iloc[0]["ecart_taille"]

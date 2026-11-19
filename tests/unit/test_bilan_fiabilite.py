@@ -151,8 +151,8 @@ def test_les_ecartees_sont_sorties_de_leur_niveau_et_dites_a_part(tmp_path):
     (ligne,) = collecter(det)
     assert ligne.total == 16 and ligne.n_ecartees == 9
     assert dict(ligne.par_niveau()) == {"quasi_certain": 7, "douteux": 0}
-    assert texte_niveaux(ligne) == "très probable 7 · contexte moderne 9"
-    assert ligne.phrase() == "enclos : 16 détections — 7 très probables, 9 en contexte moderne"
+    assert texte_niveaux(ligne) == "très probable 7 · écartées 9"          # « Écartées » depuis le 2026-11-19
+    assert ligne.phrase() == "enclos : 16 détections — 7 très probables, 9 écartées"
     assert ligne.to_dict()["ecartees"] == 9
 
 

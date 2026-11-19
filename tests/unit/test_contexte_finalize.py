@@ -52,7 +52,7 @@ def test_option_cochee_le_croisement_est_fait_et_narre(tmp_path, monkeypatch):
     res, n = _appel(tmp_path, {"contexte_moderne": True}, marquer=faux, monkeypatch=monkeypatch)
     assert vus == {"det": tmp_path / "detections", "crs": "EPSG:2154"}
     assert res.en_dict()["marquees"] == 2
-    assert n.dits == [("Contexte moderne : sur 10 détections, 2 en contexte moderne (catégorie grise, décochée), "
+    assert n.dits == [("Contexte moderne : sur 10 détections, 2 écartées (catégorie « Écartées », décochée), "
                        "3 avec une information de contexte.", False)]
 
 

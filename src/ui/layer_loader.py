@@ -218,20 +218,24 @@ def _ajouter_contexte_moderne(layer, logger) -> None:
         from qgis.core import QgsCategorizedSymbolRenderer, QgsFillSymbol, QgsRendererCategory
 
         from ..app.services.contexte_moderne import (
-            CATEGORIE_LEGENDE, COULEUR_LEGENDE, est_lineaire, expression_legende,
+            CATEGORIE_LEGENDE, CHAMPS_ECART, COULEUR_LEGENDE, est_lineaire, expression_legende,
         )
 
-        if layer.fields().indexFromName("contexte_moderne") < 0:
+        champs = tuple(c for c in CHAMPS_ECART if layer.fields().indexFromName(c) >= 0)
+        if not champs:
             return
         # Sans le modèle d'une comparaison A/B (« Charbonnières — Structures linéaires… », 2026-11-18).
         if est_lineaire(layer.name().split(" — ")[0]):
-            return          # une structure linéaire n'est jamais écartée : pas de catégorie grise vide
+            # jamais écartée par le contexte moderne ; seulement par une aire minimale réglée
+            champs = tuple(c for c in champs if c != "contexte_moderne")
+            if not champs:
+                return
         renderer = layer.renderer()
         if not isinstance(renderer, QgsCategorizedSymbolRenderer):
             return
         if any(c.value() == CATEGORIE_LEGENDE for c in renderer.categories()):
             return
-        renderer.setClassAttribute(expression_legende(renderer.classAttribute()))
+        renderer.setClassAttribute(expression_legende(renderer.classAttribute(), champs))
         symbole = QgsFillSymbol.createSimple({"color": "0,0,0,0", "outline_color": COULEUR_LEGENDE,
                                               "outline_width": "0.5", "outline_style": "dash"})
         categorie = QgsRendererCategory(CATEGORIE_LEGENDE, symbole, CATEGORIE_LEGENDE)
@@ -239,7 +243,7 @@ def _ajouter_contexte_moderne(layer, logger) -> None:
         renderer.addCategory(categorie)
         layer.triggerRepaint()
     except Exception as e:  # noqa: BLE001 — la légende d'origine reste
-        logger.warning(f"Catégorie « Contexte moderne » non ajoutée : {e}")
+        logger.warning(f"Catégorie « Écartées » non ajoutée : {e}")
 
 
 def build_detection_vector_layer(
