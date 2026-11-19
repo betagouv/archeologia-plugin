@@ -41,6 +41,11 @@ COUCHES = {
     cm.VOIE_FERREE: ("BDTOPO_V3:troncon_de_voie_ferree", ("nature",)),
     cm.TALUS_IGN: ("BDTOPO_V3:ligne_orographique", ("nature",)),
     cm.CANALISATION: ("BDTOPO_V3:canalisation", ("nature",)),
+    # exclusions à calibrer (2026-11-19) : informent tant que l'utilisateur n'a pas jugé leur galerie
+    cm.RESERVOIR: ("BDTOPO_V3:reservoir", ("nature",)),
+    cm.EPURATION: ("BDTOPO_V3:zone_d_activite_ou_d_interet", ("nature", "toponyme")),
+    cm.TERRAIN_SPORT: ("BDTOPO_V3:terrain_de_sport", ("nature",)),
+    cm.PARKING: ("BDTOPO_V3:equipement_de_transport", ("nature", "toponyme")),
     # patrimoine connu (2026-11-19) : Géoplateforme (servitudes, plans d'urbanisme) et services régionaux
     cm.MONUMENT: ("wfs_sup:generateur_sup_s", ("suptype", "nomsuplitt", "nomgen")),
     cm.PLU_ZONE: ("wfs_du:info_surf", ("typeinf", "libelle")),
@@ -52,7 +57,8 @@ COUCHES = {
 #: Données dont une panne ne compromet pas le croisement (2026-11-19) : elles ne font qu'informer, ou viennent
 #: d'un autre service ; leur absence est dite au journal et le reste est écrit. Les cinq premières données,
 #: elles, décident des exclusions : sans elles, rien n'est écrit (comme avant).
-FACULTATIVES = frozenset({cm.ROUTE, cm.VOIE_FERREE, cm.TALUS_IGN, cm.CANALISATION, *cm.SOURCES_PATRIMOINE})
+FACULTATIVES = frozenset({cm.ROUTE, cm.VOIE_FERREE, cm.TALUS_IGN, cm.CANALISATION, *cm.SOURCES_PATRIMOINE,
+                          *cm.SOURCES_A_CALIBRER})
 #: Service WFS d'une donnée qui n'est pas sur la Géoplateforme.
 SERVICES: Dict[str, str] = {cm.ZPPA_BRETAGNE: "https://geobretagne.fr/geoserver/drac/ows",
                              cm.ZPPA_AURA: "https://datacarto.open-datara.fr/wfs"}
@@ -67,6 +73,8 @@ FILTRES_LOCAUX: Dict[str, Tuple[str, frozenset]] = {
     cm.MONUMENT: ("suptype", frozenset({"ac1"})),            # servitudes : les monuments historiques
     cm.PLU_ZONE: ("typeinf", frozenset({"16"})),             # informations des PLU : l'archéologie
     cm.PLU_POINT: ("typeinf", frozenset({"16"})),
+    cm.EPURATION: ("nature", frozenset({"Station d'épuration", "Déchèterie"})),
+    cm.PARKING: ("nature", frozenset({"Parking"})),
 }
 #: Filtre côté serveur : on ne télécharge pas toutes les routes pour n'en garder que les ronds-points.
 FILTRES = {cm.ROND_POINT: "nature='Rond-point'"}
@@ -77,7 +85,9 @@ ID_CATALOGUE = {cm.BATIMENT: "batiments", cm.EAU: "surfaces_en_eau", cm.COURS_EA
                 cm.ROUTE: "routes_chemins", cm.VOIE_FERREE: "ctx_voies_ferrees", cm.TALUS_IGN: "ctx_talus_ign",
                 cm.CANALISATION: "ctx_canalisations", cm.MONUMENT: "monuments_historiques",
                 cm.PLU_ZONE: "archeo_plu_surfaces", cm.PLU_POINT: "archeo_plu_points", cm.ZPPA_BRETAGNE: "bretagne_zppa",
-                cm.ZPPA_AURA: "aura_zppa", cm.ZPPA_CVL: "cvl_zppa"}
+                cm.ZPPA_AURA: "aura_zppa", cm.ZPPA_CVL: "cvl_zppa", cm.RESERVOIR: "ctx_reservoirs",
+                cm.EPURATION: "zones_activite", cm.TERRAIN_SPORT: "ctx_terrains_sport",
+                cm.PARKING: "ctx_equipements_transport"}
 CELLULE_M = 10_000.0
 PAGE = 5000
 

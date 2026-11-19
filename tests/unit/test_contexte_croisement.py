@@ -95,7 +95,7 @@ def test_url_filtree_l_emprise_passe_dans_le_filtre():
     assert "&BBOX=" not in u and "CQL_FILTER=nature%3D%27Rond-point%27%20AND%20BBOX%28geometrie%2C0%2C0%2C10000%2C10000" in u
     assert cc.FILTRES == {cm.ROND_POINT: "nature='Rond-point'"}
     assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES, *cm.SOURCES_LINEAIRES,
-                                                         *cm.SOURCES_PATRIMOINE}
+                                                         *cm.SOURCES_PATRIMOINE, *cm.SOURCES_A_CALIBRER}
 
 
 def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():

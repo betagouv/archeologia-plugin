@@ -49,6 +49,16 @@ LIGNES_LONGEES = SOURCES_LINEAIRES + (COURS_EAU,)
 MONUMENT, PLU_ZONE, PLU_POINT = "monument", "plu_zone", "plu_point"
 ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL = "zppa_bretagne", "zppa_aura", "zppa_cvl"
 SOURCES_PATRIMOINE = (MONUMENT, PLU_ZONE, PLU_POINT, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
+#: Exclusions **à calibrer** (2026-11-19, décision de l'utilisateur) : un réservoir ou un bassin, une station
+#: d'épuration ou une déchèterie, un terrain de sport, un parking dessinent des cercles, des cuvettes et des
+#: enclos parfaits. Elles écarteraient, comme le bâti, à partir de :data:`PART_EXCLUSION` de la détection
+#: recouverte (structures ponctuelles, enclos, dépressions ; jamais les linéaires).
+RESERVOIR, EPURATION, TERRAIN_SPORT, PARKING = "reservoir", "epuration", "terrain_sport", "parking"
+SOURCES_A_CALIBRER = (RESERVOIR, EPURATION, TERRAIN_SPORT, PARKING)
+#: Celles dont l'exclusion est **activée**. Vide tant que l'utilisateur n'a pas jugé leur galerie
+#: (D:/brouillons/galerie_regles_2026-11-19) : en attendant, elles informent seulement (« parking recouvrant
+#: 40 % de la détection »), sans rien griser. Activer une source = l'ajouter ici, après jugement.
+EXCLUSIONS_ACTIVES: frozenset = frozenset()
 #: Celles qui sont des zones : la détection est « dans » la zone, plutôt qu'« à N m ».
 ZONES_PATRIMOINE = (PLU_ZONE, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
 
@@ -150,6 +160,8 @@ def consulte(source: str, structure: str) -> bool:
         return lineaire
     if source in SOURCES_PONCTUELLES:
         return not lineaire or source == COURS_EAU
+    if source in SOURCES_A_CALIBRER:
+        return not lineaire
     return True
 
 
@@ -163,6 +175,11 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
     a = objet.attributs
     if objet.source in SOURCES_PATRIMOINE:
         return INFORMER, RAYON_PATRIMOINE
+    if objet.source in SOURCES_A_CALIBRER:
+        if est_lineaire(structure):
+            return None
+        exclut = objet.source in EXCLUSIONS_ACTIVES and objet.part >= PART_EXCLUSION
+        return (EXCLURE if exclut else INFORMER), 0.0       # au contact : à côté, il ne dit rien
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
         if objet.source == COURS_EAU and _txt(a, "nature").startswith(_TRONCONS_DE_SURFACE):
             return None
@@ -346,6 +363,16 @@ def _phrase_longe(objet: Objet) -> str:
     return f"longe {nom} sur {round(max(0.0, min(1.0, objet.part)) * 100)} % de sa longueur"
 
 
+#: Nom courant d'un objet à calibrer, par nature (BD TOPO 3.5).
+_NOMS_A_CALIBRER = {
+    RESERVOIR: {"Château d'eau": "château d'eau", "Réservoir d'eau ou château d'eau au sol": "réservoir d'eau au sol",
+                "Réservoir industriel": "réservoir industriel", "": "réservoir"},
+    EPURATION: {"Station d'épuration": "station d'épuration", "Déchèterie": "déchèterie", "": "station d'épuration"},
+    TERRAIN_SPORT: {"Grand terrain de sport": "grand terrain de sport", "Petit terrain multi-sports": "terrain multisport",
+                    "Terrain de tennis": "court de tennis", "Piste de sport": "piste de sport",
+                    "Carrière équestre": "carrière équestre", "": "terrain de sport"},
+    PARKING: {"": "parking"},
+}
 _ZPPA = "zone de présomption de prescription archéologique"
 
 
@@ -376,6 +403,9 @@ def phrase(objet: Objet, structure: str = "") -> str:
     linéaire « longe un chemin sur 80 % de sa longueur »."""
     if objet.source in SOURCES_PATRIMOINE:
         return _phrase_patrimoine(objet)
+    if objet.source in SOURCES_A_CALIBRER:
+        noms = _NOMS_A_CALIBRER[objet.source]
+        return f"{noms.get(_txt(objet.attributs, 'nature'), noms[''])} {_ou(objet)}"
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
         return _phrase_longe(objet)
     if objet.source in SOURCES_PONCTUELLES:

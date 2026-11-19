@@ -93,9 +93,10 @@ Certains objets informent sans griser la détection, parce qu'ils ne disent pas 
 - une surface en eau d'**origine naturelle** ;
 - un **cours d'eau** qui traverse la détection ou passe à moins de 15 m ;
 - des **ruines**, un **moulin** ou un **château** nommés par l'IGN parmi les zones d'habitation ;
-- un rond-point qui recouvre moins de 10 % de la détection.
+- un rond-point qui recouvre moins de 10 % de la détection ;
+- un **réservoir** ou un château d'eau, une **station d'épuration** ou une **déchèterie**, un **terrain de sport**, un **parking** qui touche la détection : « parking recouvrant 40 % de la détection ». Ces objets dessinent des cercles, des cuvettes et des enclos parfaits ; ils sont pour l'instant une simple information, le temps de vérifier sur des cas réels qu'ils peuvent griser une détection sans écarter de vrais objets.
 
-Les zones d'habitation et ces quatre dernières lignes ne concernent que les structures ponctuelles.
+Les zones d'habitation et ces cinq dernières lignes ne concernent que les structures ponctuelles.
 
 Une structure linéaire reçoit une information quand elle **longe** une route ou un chemin, une voie ferrée, un cours d'eau, un talus, une levée ou un front de carrière relevé par l'IGN, ou une canalisation, sur au moins 30 % de sa longueur : « longe un chemin sur 80 % de sa longueur ». La part est mesurée dans une bande de 6 m de part et d'autre de la ligne de l'IGN, tous les tronçons d'une même donnée réunis ; une détection qui ne fait que croiser une route n'en reçoit pas. C'est une information, jamais une exclusion : un chemin creux encore parcouru par un chemin reste un chemin creux, mais vous savez qu'il est connu.
 

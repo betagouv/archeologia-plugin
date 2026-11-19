@@ -151,7 +151,9 @@ TITRES_PAR_DEFAUT = {cm.BATIMENT: "Bâtiments", cm.EAU: "Surfaces en eau et mare
                      cm.PLU_POINT: "Archéologie des PLU (points)",
                      cm.ZPPA_BRETAGNE: "Zones de présomption (Bretagne)",
                      cm.ZPPA_AURA: "Zones de présomption (Auvergne-Rhône-Alpes)",
-                     cm.ZPPA_CVL: "Zones de présomption (Centre-Val de Loire)"}
+                     cm.ZPPA_CVL: "Zones de présomption (Centre-Val de Loire)",
+                     cm.RESERVOIR: "Réservoirs, châteaux d'eau, bassins", cm.EPURATION: "Zones d'activité et d'intérêt",
+                     cm.TERRAIN_SPORT: "Terrains de sport", cm.PARKING: "Équipements de transport (parkings, aires, péages)"}
 
 
 def titres_catalogue() -> Dict[str, str]:

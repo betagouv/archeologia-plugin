@@ -405,3 +405,24 @@ def test_la_source_d_une_information_de_patrimoine_n_est_pas_la_bd_topo():
                   {cm.PLU_POINT: "Archéologie des PLU (points)"}, "2026-11-19")
     assert c["contexte_source"] == "Archéologie des PLU (points) (données publiques), lue le 2026-11-19"
     assert cm.base_de([cm.BATIMENT, cm.EAU]) == "BD TOPO, IGN"
+
+
+# ── 2026-11-19 : exclusions à calibrer (réservoirs, épuration, terrains de sport, parkings) ──────────────────
+def test_les_exclusions_a_calibrer_n_ecartent_pas_tant_qu_elles_ne_sont_pas_activees(monkeypatch):
+    parking = cm.Objet(cm.PARKING, {"nature": "Parking"}, 0.0, 0.4)
+    assert cm.EXCLUSIONS_ACTIVES == frozenset()            # en attente du jugement de l'utilisateur
+    c = cm.champs([parking], "enclos", "s")
+    assert c["contexte_moderne"] is None and c["contexte_info"] == "parking recouvrant 40 % de la détection"
+    monkeypatch.setattr(cm, "EXCLUSIONS_ACTIVES", frozenset({cm.PARKING}))
+    assert cm.champs([parking], "enclos", "s")["contexte_moderne"] == "parking recouvrant 40 % de la détection"
+    sous = cm.champs([cm.Objet(cm.PARKING, {}, 0.0, 0.05)], "enclos", "s")
+    assert sous["contexte_moderne"] is None and sous["contexte_info"] == "parking recouvrant 5 % de la détection"
+    assert cm.champs([parking], "parcellaire", "s")["contexte_info"] is None      # jamais les linéaires
+
+
+def test_noms_des_objets_a_calibrer():
+    for source, nature, nom in ((cm.RESERVOIR, "Réservoir d'eau ou château d'eau au sol", "réservoir d'eau au sol"),
+                                (cm.EPURATION, "Station d'épuration", "station d'épuration"),
+                                (cm.EPURATION, "Déchèterie", "déchèterie"),
+                                (cm.TERRAIN_SPORT, "Grand terrain de sport", "grand terrain de sport")):
+        assert cm.phrase(cm.Objet(source, {"nature": nature}, 0.0, 0.3)) == f"{nom} recouvrant 30 % de la détection"
