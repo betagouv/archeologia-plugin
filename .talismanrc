@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: aide/img/run-fin.png
+  checksum: 7baa454e992a5c44f0431720f0eecd04f9a7bd271d935bbc2d173f2d98f88403
 - filename: data/fonds_publics/legendes/carte_1950.png
   checksum: 91fc34f57c335917ae67de6703f9b4aaaac7916426a724626fd9ee2a6df0ff8e
 - filename: tests/unit/test_fonds_essais.py
@@ -340,7 +342,7 @@ fileignoreconfig:
 - filename: tests/unit/test_opns.py
   checksum: c90bbdb89d9295a4e2854febfa8ee182435cf9389ada7067a5da2078b8d0707a
 - filename: metadata.txt
-  checksum: 529ddc08007e9bcf4140c0029ecedce85a653004d9dc3ec1fb063483801d209b
+  checksum: 7e8d7e52997bfaea563c2e1ba5a99440db7d16eadcbe3cf1fb44de7e0499bf78
 - filename: tests/unit/test_mnt_chien_de_garde.py
   checksum: 3a88266951015a42c91f1253d9cb20087afaa1d83caa9f916ca56ff20e436258
 - filename: src/pipeline/ign/products/mnt.py
@@ -360,7 +362,7 @@ fileignoreconfig:
 - filename: CLAUDE.md
   checksum: 3dee27f976e41edff0e53130f7ee732279d9389abf8d7e556418e735dc6b472c
 - filename: README.md
-  checksum: 826fc2543c11864d1ae91f39c5af8c3616d9bac649d2a1d2337a3ffc6b863ee5
+  checksum: c08d4dac0ae5b1deff83e387a7b4703fff68679be7a059bb9551a5a18cff61a7
 - filename: dev/docs/documentation_utilisateur_v1.docx
   checksum: 9984314b88553c8aa0de31f28403d664eba5a2426681c22a6b1c29e5c787cc5e
 - filename: dev/docs/specs/2026-06-11-produit-couverture-design.md
@@ -594,7 +596,7 @@ fileignoreconfig:
 - filename: aide/img/resultats-legende-fiabilite.jpg
   checksum: d27f3aeebfb1b815ba64ddd4ef2cfe5ffe845108f263e1310760f6d8c0d1246a
 - filename: aide/img/etape3-detection.png
-  checksum: a734047e51230ecea071199bc7d5facc44e1e744603bd4b2ca06154685d1217c
+  checksum: c6c5779c5cf58fd91261e1933dc7b28f6395ca79b473b865127260b7eff9038c
 - filename: aide/img/etape2-fiche-produit.png
   checksum: 2f23dd3b1784aca4cb50884cc0cf8eeab6d0dd107c762543f381a19e6e06d096
 - filename: aide/02-premier-traitement.md
@@ -626,11 +628,11 @@ fileignoreconfig:
 - filename: aide/img/etape2-produits.png
   checksum: 33dd6625c569d5ba7342b0c042468adf2fb5e91c133c9ce823ae7f40b87e5bfc
 - filename: aide/img/etape4-verifications.png
-  checksum: 921837f978085f0b4e309832213cba6c6f336a6226c33f8969f79f853bc42579
+  checksum: 4b18ee4a9e3a588aa0a69756e88dbebd27de4d13f1219a69125efae6830bfb27
 - filename: src/pipeline/ign/quadrillage_paths.py
   checksum: 0fd8b8538bdf7e6517d67ea484aaf266e98a4e32b717715ddd4186ce46d69b85
 - filename: data/quadrillage_france.zip
-  checksum: 1f1e8fa33e11224b1236ee9f577f404f4e5a9784f413dce8fc55099631728e52
+  checksum: 48b48cb88081fecbba79898c14383e3b916a793641d0aa14e76c53303b5c56fb
 - filename: src/pipeline/ign/products/rvt_embarque/NOTICE
   checksum: 2093b71a8b36c33be1bba88e4435cb60afad13e0630502b376c08747d94d0b1c
 - filename: tests/unit/test_rvt_embarque.py
