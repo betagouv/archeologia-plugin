@@ -11,9 +11,14 @@ from typing import List, Optional
 
 from ..app.progress_reporter import USER_INFO
 from ..app.services.nom_analyse import (
+    GROUPE_INDICES,
+    PROPRIETE,
+    est_qualite,
     groupe_analyse,
     groupe_indices,
+    groupe_qualite,
     groupe_structures,
+    indice_coche,
     retirer_groupes_vides,
 )
 from ..app.services.vocabulaire import titre_dossier_image
@@ -408,9 +413,10 @@ def load_result_layers(
     applique la symbologie, puis zoome sur l'étendue combinée (déféré).
 
     Tout va sous le groupe de l'analyse ``titre_analyse`` (« <nom> — JJ/MM/AAAA HH:MM »,
-    ``nom_analyse.titre_du_livrable``, 0.19.0) : la couche QA en tête, « Structures », puis
-    « Indices » (les mosaïques, MNT en dernier) ; deux analyses = deux groupes, recharger la même
-    réutilise son groupe et ses couches (``_reuse_existing``). Sans titre : arbre à plat d'avant.
+    ``nom_analyse.titre_du_livrable``, 0.19.0) : « Qualité de la donnée » (couche QA en tête, puis
+    densité et couverture décochées), « Structures », puis « Indices » (groupe exclusif, LD coché,
+    MNT en dernier ; 2026-11-18) ; deux analyses = deux groupes, recharger la même réutilise son
+    groupe et ses couches (``_reuse_existing``, rangées dans le bon groupe). Sans titre : arbre à plat d'avant.
     Toutes les couches de détection vont sous le groupe « Structures » (N-02, 2026-10-25) ;
     ``derived_slugs`` (slugs d'entités dérivées ou comparées) + ``entity_labels``
     (slug→libellé) y font un **sous-groupe** par libellé (zone + constituants ensemble,
@@ -443,7 +449,14 @@ def load_result_layers(
             rvt_type = _rvt_type_of(vrt_path_str)
             layer_name = titre_dossier_image(rvt_type)   # « SVF · Creux & dépressions · R10_… » (N-03)
 
-            if _reuse_existing(project, layer_name, vrt_path_str, loaded_layers, combined_extent):
+            # Densité et couverture : « Qualité de la donnée », décochées (2026-11-18) ; le reste : « Indices ».
+            qualite = est_qualite(rvt_type)
+            parent = groupe_analyse(root, titre_analyse)
+            cible = groupe_qualite(parent) if qualite else groupe_indices(parent)
+            existante = _reuse_existing(project, layer_name, vrt_path_str, loaded_layers, combined_extent)
+            if existante:
+                # chargée avant cette version : rangée, jamais en double
+                _ranger(root, existante, cible, decochee=qualite)
                 logger.info(f"Couche raster déjà présente: {layer_name}")
                 continue
 
@@ -453,7 +466,9 @@ def load_result_layers(
                 if rvt_type == "COUVERTURE":
                     apply_coverage_raster_symbology(layer, coverage_threshold_percent, logger)
                 project.addMapLayer(layer, False)
-                groupe_indices(groupe_analyse(root, titre_analyse)).addLayer(layer)
+                noeud = cible.addLayer(layer)
+                if qualite and noeud is not None:
+                    noeud.setItemVisibilityChecked(False)
                 loaded_layers.append(layer)
                 combined_extent = _combine(combined_extent, layer.extent())
                 loaded_count += 1
@@ -507,7 +522,10 @@ def load_result_layers(
             if not qa_path:
                 continue
             qa_str = str(qa_path)
-            if _reuse_existing(project, qa_name, qa_str, loaded_layers, combined_extent):
+            cible = groupe_qualite(groupe_analyse(root, titre_analyse))
+            existante = _reuse_existing(project, qa_name, qa_str, loaded_layers, combined_extent)
+            if existante:
+                _ranger(root, existante, cible, en_tete=True)
                 logger.info(f"Couche QA déjà présente: {qa_name}")
                 continue
             layer = build_low_coverage_vector_layer(qa_str, coverage_threshold_percent, logger)
@@ -515,11 +533,14 @@ def load_result_layers(
                 logger.warning(f"Impossible de charger la couche QA: {qa_str}")
                 continue
             project.addMapLayer(layer, False)
-            groupe_analyse(root, titre_analyse).insertLayer(0, layer)  # au-dessus des structures et des rasters
+            cible.insertLayer(0, layer)  # en tête de « Qualité de la donnée », au-dessus de la couverture
             loaded_layers.append(layer)
             combined_extent = _combine(combined_extent, layer.extent())
             loaded_count += 1
             logger.info(f"Couche QA chargée: {qa_name}")
+
+        if titre_analyse:
+            regler_indices(groupe_analyse(root, titre_analyse))
 
         if loaded_count > 0:
             from ..app.user_narrator import _human_count
@@ -580,8 +601,41 @@ def _ensure_layer_crs(layer, logger, fallback_authid: Optional[str] = None) -> N
         logger.warning(f"Impossible de fixer le CRS de « {layer.name()} »: {e}")
 
 
-def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent) -> bool:
-    """Si une couche de même nom + source existe déjà, la réutilise.
+def regler_indices(parent) -> None:
+    """Le groupe « Indices » d'une analyse est exclusif (un indice affiché à la fois, 2026-11-18) : le LD
+    coché, sinon le premier (``nom_analyse.indice_coche``). Jamais à la racine (analyses sans titre,
+    rasters à plat). Partagé par le chargement en direct et ``qgs_writer``."""
+    from qgis.core import QgsLayerTree
+
+    if parent.customProperty(PROPRIETE) is None:
+        return
+    groupe = parent.findGroup(GROUPE_INDICES)
+    if groupe is None or not groupe.children():
+        return
+    types = [_rvt_type_of(n.layer().source()) if QgsLayerTree.isLayer(n) and n.layer() is not None else ""
+             for n in groupe.children()]
+    groupe.setIsMutuallyExclusive(True, indice_coche(types))
+
+
+def _ranger(root, couche, cible, en_tete: bool = False, decochee: bool = False) -> None:
+    """Déplace le nœud d'une couche déjà chargée dans ``cible`` (une analyse chargée avant la version qui
+    a créé ce groupe) ; rien s'il y est déjà (le choix de l'utilisateur reste). Jamais de doublon : le
+    nœud d'origine est retiré. ``decochee`` : la couche arrive décochée, comme une couche neuve."""
+    noeud = root.findLayer(couche.id())
+    if noeud is None or noeud.parent() is cible:
+        return
+    copie = noeud.clone()
+    if en_tete:
+        cible.insertChildNode(0, copie)
+    else:
+        cible.addChildNode(copie)
+    if decochee:
+        copie.setItemVisibilityChecked(False)
+    noeud.parent().removeChildNode(noeud)
+
+
+def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent):
+    """Si une couche de même nom + source existe déjà, la réutilise et la rend (sinon ``None``).
 
     Défensif : on force une relecture du datasource (``reload``) avant réutilisation.
     Si le fichier (VRT régénéré, GPKG réécrit) a changé sur disque depuis son
@@ -590,7 +644,9 @@ def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent)
     parade principale ; ceci couvre une couche chargée par un autre chemin.
     """
     for existing in project.mapLayersByName(layer_name):
-        if existing.source() == source:
+        # Même nom et même fichier : la couche QA est chargée en « chemin|layername=… » mais demandée par
+        # son seul chemin — sans cette tolérance, elle se dupliquait à chaque rechargement (2026-11-18).
+        if existing.source() == source or existing.source().split("|")[0] == str(source).split("|")[0]:
             try:
                 existing.reload()
                 existing.triggerRepaint()
@@ -598,8 +654,8 @@ def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent)
                 pass
             loaded_layers.append(existing)
             _combine(combined_extent, existing.extent())
-            return True
-    return False
+            return existing
+    return None
 
 
 def _retirer_groupes_vides(project) -> None:

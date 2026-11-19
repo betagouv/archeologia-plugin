@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: tests/fixtures/arbre_analyse.qgs
+  checksum: d269db5941e7cc12f148046e6d6576e10b6107d558347b942234e0efdce49dd0
 - filename: src/pipeline/modes/existing_mnt.py
   checksum: 95590533469753a1731587414599a821dfa460703097eeec1d264d0ff810e7e8
 - filename: tests/unit/test_existing_mnt_halo.py
@@ -12,7 +14,7 @@ fileignoreconfig:
 - filename: tests/unit/test_pas_de_dossier_shapefiles_vide.py
   checksum: d8faff3aea45c414b81d6cad8c40223da61265116d1220710d44de0efb7e0849
 - filename: tests/unit/test_nom_analyse.py
-  checksum: c69d6537b7ea24171949a3d92cc2154bace4c7923e815261826f3a76a203fe84
+  checksum: 8e9f20a3ef10cb6adb9ce5facb1be26400df25f089dfb6fd2a67917a3cdf6c5a
 - filename: tests/unit/test_preprocess_ecriture_atomique.py
   checksum: 805381d978369f295b9bd100976d24370ac873902c04f2707bbf9f7d349a0992
 - filename: tests/unit/test_opns.py
@@ -36,7 +38,7 @@ fileignoreconfig:
 - filename: .githooks/pre-push
   checksum: c3ba1eb42246b032f6a556dd8813efdeab7151044c6e9942a252822ca56905da
 - filename: CLAUDE.md
-  checksum: fcdf18a8e3dbf5a58c5561cbc59c267bb6d8adf98ad6a33e8eaec9115135bf35
+  checksum: 5e01460cfa92affada8cb3d735206101106b5c5fd783bb618ce0b32306c22cdb
 - filename: README.md
   checksum: 826fc2543c11864d1ae91f39c5af8c3616d9bac649d2a1d2337a3ffc6b863ee5
 - filename: dev/docs/documentation_utilisateur_v1.docx
@@ -118,11 +120,11 @@ fileignoreconfig:
 - filename: src/ui/icons.py
   checksum: df0d068fd896cf1361d0a6286e537fc015e473c5bc58924f9d79c3813df543b0
 - filename: src/ui/layer_loader.py
-  checksum: 00f5545f8d75845c046153afba8a36aef6b0dd14ef032a57709ecb074d969d73
+  checksum: bee4485c5bf46248a56c013b739f671cca52f9e597f279431a52b7427995a0e1
 - filename: src/ui/map_tools/tile_picker_tool.py
   checksum: 54f1e09233be20b03558ae316ea804f793a795112149ef19584b552aaaeeed26
 - filename: src/ui/qgs_writer.py
-  checksum: 291f03403bb25d9b75d823babd83b54dbfd63adb15e521525028d2eed521c9c8
+  checksum: 25e7c535b8095c95a9e51ad2d3a8e3300518e3af59b5d9ba36300fe1f4b965b5
 - filename: src/ui/steps/step_1_source.py
   checksum: 188659a6df3d476de9a2b48f4e2df9bfaf5d32c2f8302ac50f17123ab15c356e
 - filename: src/ui/steps/step_2_indices.py
@@ -138,7 +140,7 @@ fileignoreconfig:
 - filename: src/ui/wizard_dialog.py
   checksum: 28265150c06a3b7b1aa695a23d54d27d98238fc53836c3766340055e3253c9de
 - filename: tests/TESTS_MANUELS_QGIS.md
-  checksum: 5da8b2ec85ca0c1b8da2aed50edbc63a68c99ebe2483a9824855dd88691ad098
+  checksum: 559202d22f3c0993da652e7ca61d0d25c7ceea8f5caf4a003ebc8b5cbe675352
 - filename: tests/integration/test_existing_mnt_runner_finalize.py
   checksum: 09edbe48be7d273624e9d95354e3273c07a648491880cdb33c590782900510db
 - filename: tests/integration/test_existing_rvt_runner_isolation.py
@@ -260,7 +262,7 @@ fileignoreconfig:
 - filename: .claude/commands/livraison.md
   checksum: 498e642842583cf7d377223b7bfe16da0f82042b4a442d88e05ae3542ecf1d65
 - filename: aide/08-resultats.md
-  checksum: 9766d40ba878355740dbaf86060398945ea7188e16baabde3acc07d3e7a12b1e
+  checksum: 681ed560e51ec1bba5a41162508a5059eac3efea4a96e28a61b2f05bb28b6227
 - filename: aide/04-etape-2-produits.md
   checksum: 4b048b15022f9e67dc405b0544e2dedb936f1dda00758f6f064e095c50a6a87e
 - filename: aide/09-depannage.md
@@ -300,7 +302,7 @@ fileignoreconfig:
 - filename: data/third_party/cv_runner_onnx/windows/build_info.json
   checksum: f1ca9b860b1ab18006785fe1a78a1606462c711fb92dfd5c666eae43108efd92
 - filename: dev/rendu_hors_ecran.py
-  checksum: 221e3b44a163ef91b4e74c7aca8f0f381d79841a13b6aff38260b462dd559f67
+  checksum: 5de0b65cd849efdd0a6a9000218f1cd1a92eb229b165077bee70101abebf1860
 - filename: aide/img/etape2-produits.png
   checksum: 33dd6625c569d5ba7342b0c042468adf2fb5e91c133c9ce823ae7f40b87e5bfc
 - filename: aide/img/etape4-verifications.png
