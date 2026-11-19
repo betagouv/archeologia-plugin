@@ -84,7 +84,7 @@ fileignoreconfig:
 - filename: src/pipeline/cv/clustering_bounds.py
   checksum: a53968cd2a888ddf1a432388d8fec82c1ec669c7e451499d43107ff0cdadb770
 - filename: src/pipeline/cv/computer_vision_onnx.py
-  checksum: 7c7b48a8f06eecb25ddc15745a7a5d98778238ba4807d0b86d8693b7b7af10a5
+  checksum: 666c866fe3e8c7c9cfac117920930cd28f792d5fe26316830f2922621971c911
 - filename: src/pipeline/cv/computer_vision_rfdetr.py
   checksum: 3c3de1d9bab52f155e9cc9f5f54a60f43c2ea784d485f8959603bbdc5e07d768
 - filename: src/pipeline/cv/conversion_shp.py
@@ -140,7 +140,7 @@ fileignoreconfig:
 - filename: src/ui/wizard_dialog.py
   checksum: 28265150c06a3b7b1aa695a23d54d27d98238fc53836c3766340055e3253c9de
 - filename: tests/TESTS_MANUELS_QGIS.md
-  checksum: 559202d22f3c0993da652e7ca61d0d25c7ceea8f5caf4a003ebc8b5cbe675352
+  checksum: aa855ce8254946ad847678be0c5bd8db3703ec140d57725dc711367c3f97d773
 - filename: tests/integration/test_existing_mnt_runner_finalize.py
   checksum: 09edbe48be7d273624e9d95354e3273c07a648491880cdb33c590782900510db
 - filename: tests/integration/test_existing_rvt_runner_isolation.py

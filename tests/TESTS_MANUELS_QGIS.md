@@ -1297,3 +1297,9 @@ Automatique : `python-qgis.bat dev/rendu_hors_ecran.py arbre` sous les deux QGIS
 - [ ] **81.3 Indices exclusif** : LD seul coché à l'ouverture ; cocher le SVF décoche le LD ; MNT dans le groupe, en dernier. Sans LD : le premier indice coché.
 - [ ] **81.4 Analyse déjà chargée** : une analyse ajoutée avec la version précédente (couverture dans « Indices », zones mal couvertes en tête du groupe) puis ajoutée de nouveau → rangée dans les nouveaux groupes, aucune couche en double.
 - [ ] **81.5 Analyse d'avant 0.19.0** (sans titre, rasters à plat à la racine) : chargée comme avant, pas de groupe exclusif à la racine.
+
+## 82. Fusion des fenêtres de détection : la boîte entière l'emporte sur le morceau coupé (2026-11-19) ⭐ P1
+
+Automatique : `tests/unit/test_fusion_fragment_fenetre.py` (cas réel de la dalle 0995_6747) et `test_binaire_a_jour` (binaire recompilé). En séance, structures ponctuelles sur la dalle 0995_6747 :
+- [ ] **82.1 Charbonnière à la coupure** (vers x = 1 709–1 748 px de l'image, y ≈ 635–673) : une seule boîte, qui couvre l'objet entier (≈ 39 px de côté, confiance ≈ 0,53) au lieu de sa moitié droite (21 px, 0,64).
+- [ ] **82.2 Relance dans un dossier existant** : le journal annonce la purge du cache (moteur changé) et la ré-inférence des images.

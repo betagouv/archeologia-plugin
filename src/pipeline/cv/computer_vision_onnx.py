@@ -1629,6 +1629,7 @@ def run_onnx_inference(
             match_threshold=iou_threshold,
             match_metric="IOS",
             class_agnostic=False,
+            slice_size=(slice_width, slice_height),
         )
         
         # Convertir en Detection typée (mode bbox uniquement à ce stade)
