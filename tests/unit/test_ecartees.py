@@ -7,7 +7,6 @@
 - Défaut : 50 m² pour les enclos et les enclos circulaires, porté par le catalogue des structures.
 """
 import json
-import sqlite3
 from pathlib import Path
 
 import geopandas as gpd
