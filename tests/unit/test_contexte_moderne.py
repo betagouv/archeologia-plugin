@@ -408,9 +408,17 @@ def test_la_source_d_une_information_de_patrimoine_n_est_pas_la_bd_topo():
 
 
 # ── 2026-11-19 : exclusions à calibrer (réservoirs, épuration, terrains de sport, parkings) ──────────────────
+def test_exclusions_activees_apres_jugement_de_la_galerie():
+    """2026-11-19 : « tous les cas écartés dans les exemples me semblent bons » (galerie_regles_2026-11-19)."""
+    assert {cm.EPURATION, cm.RESERVOIR, cm.TERRAIN_SPORT} <= cm.EXCLUSIONS_ACTIVES
+    for source in (cm.EPURATION, cm.RESERVOIR, cm.TERRAIN_SPORT):
+        assert cm.champs([cm.Objet(source, {}, 0.0, 0.4)], "enclos", "s")["contexte_moderne"] is not None, source
+        assert cm.champs([cm.Objet(source, {}, 0.0, 0.05)], "enclos", "s")["contexte_moderne"] is None, source
+
+
 def test_les_exclusions_a_calibrer_n_ecartent_pas_tant_qu_elles_ne_sont_pas_activees(monkeypatch):
     parking = cm.Objet(cm.PARKING, {"nature": "Parking"}, 0.0, 0.4)
-    assert cm.EXCLUSIONS_ACTIVES == frozenset()            # en attente du jugement de l'utilisateur
+    monkeypatch.setattr(cm, "EXCLUSIONS_ACTIVES", frozenset())
     c = cm.champs([parking], "enclos", "s")
     assert c["contexte_moderne"] is None and c["contexte_info"] == "parking recouvrant 40 % de la détection"
     monkeypatch.setattr(cm, "EXCLUSIONS_ACTIVES", frozenset({cm.PARKING}))

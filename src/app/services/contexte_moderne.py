@@ -55,10 +55,10 @@ SOURCES_PATRIMOINE = (MONUMENT, PLU_ZONE, PLU_POINT, ZPPA_BRETAGNE, ZPPA_AURA, Z
 #: recouverte (structures ponctuelles, enclos, dépressions ; jamais les linéaires).
 RESERVOIR, EPURATION, TERRAIN_SPORT, PARKING = "reservoir", "epuration", "terrain_sport", "parking"
 SOURCES_A_CALIBRER = (RESERVOIR, EPURATION, TERRAIN_SPORT, PARKING)
-#: Celles dont l'exclusion est **activée**. Vide tant que l'utilisateur n'a pas jugé leur galerie
-#: (D:/brouillons/galerie_regles_2026-11-19) : en attendant, elles informent seulement (« parking recouvrant
-#: 40 % de la détection »), sans rien griser. Activer une source = l'ajouter ici, après jugement.
-EXCLUSIONS_ACTIVES: frozenset = frozenset()
+#: Celles dont l'exclusion est **activée**, après jugement de leur galerie par l'utilisateur (2026-11-19,
+#: D:/brouillons/galerie_regles_2026-11-19 : « tous les cas écartés dans les exemples me semblent bons »).
+#: Une source absente d'ici informe seulement (« parking recouvrant 40 % de la détection »).
+EXCLUSIONS_ACTIVES: frozenset = frozenset({EPURATION, RESERVOIR, TERRAIN_SPORT})
 #: Celles qui sont des zones : la détection est « dans » la zone, plutôt qu'« à N m ».
 ZONES_PATRIMOINE = (PLU_ZONE, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
 
