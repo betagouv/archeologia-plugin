@@ -40,10 +40,10 @@ class TestDefaultConfig:
         cfg = cm.default_config()
         assert cfg["app"]["files"]["data_mode"] == "ign_laz"
 
-    def test_default_products_recommandes(self, cm: ConfigManager):
-        # Même défaut que indices_model.default_products (lot 3, 2026-10-24).
+    def test_aucun_produit_coche_par_defaut(self, cm: ConfigManager):
+        # Même défaut que indices_model.default_products : rien d'avance (décision du 2026-11-12).
         prods = cm.default_config()["processing"]["products"]
-        assert {k for k, v in prods.items() if v} == {"MNT", "SVF", "LD"}
+        assert not any(prods.values())
 
     def test_defaut_vierge_seulement(self, tmp_path: Path):
         # Une configuration déjà enregistrée sans image cochée reste telle quelle :

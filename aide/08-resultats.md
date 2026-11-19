@@ -38,7 +38,7 @@ Dans chaque dossier `tif/`, la mosaïque `index_<PRODUIT>.vrt` assemble toutes l
 
 ## Le projet de validation
 
-`livrable/projet.qgs` est écrit à la fin de chaque traitement et constitue le point d'entrée pour valider les détections. Tout y est réuni dans un groupe au [nom de l'analyse](etape-1-source.md#nom-de-l-analyse), suivi de la date et de l'heure du traitement : « be_vl · indices — 01/11/2026 14:05 ». Le projet porte ce même titre (menu Projet ▸ Propriétés) ; il ne garde pas le nom de l'utilisateur du poste qui l'a écrit, pour être transmis tel quel. Dans ce groupe, de haut en bas : la couche des zones mal couvertes quand la couverture a été calculée, un groupe **Structures**, puis un groupe **Indices** avec les mosaïques des produits, nommées comme à l'étape 2, le modèle de terrain en dernier. Le groupe **Structures** a une couche de détections stylée par structure, nommée comme elle : « Cratères », « Parcellaire ». Une structure détectée en plusieurs classes a une couche par classe, « Talus et fossés · talus » ; un regroupement forme un sous-groupe avec ses zones et les détections qui les composent ; deux modèles comparés sur une même structure donnent deux couches, « Parcellaire — Modèle A » et « Parcellaire — Modèle B », dans un sous-groupe marqué « comparaison ». La couleur d'une couche est celle de sa structure, la même à l'étape 3, dans la légende et dans le rapport, et elle ne change pas d'un traitement à l'autre.
+`livrable/projet.qgs` est écrit à la fin de chaque traitement et constitue le point d'entrée pour valider les détections. Tout y est réuni dans un groupe au [nom de l'analyse](etape-1-source.md#nom-de-l-analyse), suivi de la date et de l'heure du traitement : « be_vl · indices — 01/11/2026 14:05 ». Le projet porte ce même titre (menu Projet ▸ Propriétés) ; il ne garde pas le nom de l'utilisateur du poste qui l'a écrit, pour être transmis tel quel. Dans ce groupe, de haut en bas : un groupe **Qualité de la donnée** quand elle a été mesurée (la couche des zones mal couvertes en tête, puis la couverture et la densité, décochées : cochez-les pour les voir), un groupe **Structures**, puis un groupe **Indices** avec les mosaïques des produits, nommées comme à l'étape 2, le modèle de terrain en dernier. Une seule mosaïque d'**Indices** s'affiche à la fois : cocher l'une décoche l'autre, et le LD est coché à l'ouverture (à défaut, la première de la liste). Le groupe **Structures** a une couche de détections stylée par structure, nommée comme elle : « Cratères », « Parcellaire ». Une structure détectée en plusieurs classes a une couche par classe, « Talus et fossés · talus » ; un regroupement forme un sous-groupe avec ses zones et les détections qui les composent ; deux modèles comparés sur une même structure donnent deux couches, « Parcellaire — Modèle A » et « Parcellaire — Modèle B », dans un sous-groupe marqué « comparaison ». La couleur d'une couche est celle de sa structure, la même à l'étape 3, dans la légende et dans le rapport, et elle ne change pas d'un traitement à l'autre.
 
 Les mêmes couches, dans le même groupe, sont chargées dans votre projet QGIS courant quand vous cliquez **Ajouter au projet QGIS courant** à la fin du traitement, une seule fois. Rien ne se charge sans ce clic ; le fichier `livrable/projet.qgs` s'ouvre comme tout projet QGIS, depuis le menu Projet ou l'explorateur de fichiers.
 
@@ -46,7 +46,7 @@ Chaque traitement ajouté a son groupe, en haut du panneau des couches : deux an
 
 ## Revoir un résultat
 
-La sixième étape de l'assistant, **Résultats**, liste les traitements lancés depuis ce poste, du plus récent au plus ancien : la date, le point de départ, le dossier, les produits, les structures et le nombre de détections. Pour chacun, **Ajouter au projet QGIS courant** charge ses couches, stylées, dans le projet ouvert ; **Rapport** ouvre son rapport ; **Relancer avec un seuil changé** recharge ses réglages dans l'assistant et l'ouvre à l'étape 3, pour modifier un seuil et relancer dans le même dossier. Un dossier déplacé ou supprimé disparaît de la liste ; un traitement d'une version précédente, sans trace complète, se consulte mais ne se relance pas d'ici. Le bouton **Revoir les résultats** du cadre « Par où commencer », à la fin d'un traitement, mène à cette étape.
+La sixième étape de l'assistant, **Résultats**, liste les traitements lancés depuis ce poste, du plus récent au plus ancien : la date, le point de départ, le dossier, les produits, les structures et le nombre de détections. Pour chacun, **Ajouter au projet QGIS courant** charge ses couches, stylées, dans le projet ouvert ; **Rapport** ouvre son rapport ; **Relancer avec un seuil changé** recharge ses réglages dans l'assistant et l'ouvre à l'étape 3, pour modifier un seuil et relancer dans le même dossier. Un dossier déplacé ou supprimé disparaît de la liste ; un traitement d'une version précédente, sans trace complète, se consulte mais ne se relance pas d'ici.
 
 [![Étape 6 : les traitements lancés depuis ce poste, chacun avec ses quatre gestes](img/etape6-resultats.png)](img/etape6-resultats.png)
 
@@ -56,7 +56,7 @@ Chaque couche de détections est catégorisée en quatre niveaux : **douteux**, 
 
 Le dessin : contour seul, sans remplissage, pour laisser lire la structure détectée dessous ; une couleur par classe, déclinée du plus foncé (très probable) au plus clair (douteux). L'infobulle de la couche et son résumé, dans les propriétés, donnent la part mesurée pour chaque niveau et le nombre de détections sur lequel elle a été mesurée.
 
-À l'ouverture, seuls **très probable** et **probable** sont cochés dans la légende ; **possible** et **douteux** y sont, décochés. Commencez par ce qui est sûr, puis cochez les deux autres niveaux d'un clic dans le panneau des couches pour élargir : toutes les détections sont dans le GeoPackage, dans le bilan de fin de traitement et dans le rapport. L'état des cases est enregistré dans le projet ; une couche chargée depuis le bouton « Ajouter au projet QGIS courant » s'ouvre de la même façon.
+À l'ouverture, seuls **très probable** et **probable** sont cochés dans la légende ; **possible** et **douteux** y sont, décochés. Pour le parcellaire, **possible** est coché d'emblée. Commencez par ce qui est sûr, puis cochez les deux autres niveaux d'un clic dans le panneau des couches pour élargir : toutes les détections sont dans le GeoPackage, dans le bilan de fin de traitement et dans le rapport. L'état des cases est enregistré dans le projet ; une couche chargée depuis le bouton « Ajouter au projet QGIS courant » s'ouvre de la même façon.
 
 Quand vous avez baissé le seuil d'une structure sous celui du modèle, les détections ajoutées forment le niveau **douteux · sous le seuil du modèle** : la part de vrais y est celle mesurée pour cet intervalle quand le modèle la fournit, sinon « non mesurée » ; les autres niveaux gardent leurs coupures. Ces détections sont fusionnées entre elles, jamais avec celles qui passaient déjà le seuil : un bon polygone n'est pas tiré vers le bas par un fragment faible accolé. L'infobulle d'une détection dit, pour un polygone fusionné, de combien de fragments il est fait et le score du plus sûr.
 
@@ -65,6 +65,51 @@ Quand vous avez baissé le seuil d'une structure sous celui du modèle, les dét
 Pour voir d'où viennent les coupures d'une classe, ouvrez sa fiche à l'étape 3 : le **profil des scores** range les détections de l'évaluation par score, vraies en couleur et fausses en gris, et trace les coupures. Sous le seuil, presque tout est faux ; au-dessus de la dernière coupure, presque tout est vrai.
 
 Une couche issue d'un modèle sans fiabilité mesurée est catégorisée par tranches de score.
+
+## Le contexte moderne
+
+Quand l'option « Signaler le contexte moderne » de l'étape 4 est cochée, chaque détection est comparée, à la fin du traitement, à des données de la BD TOPO de l'IGN : les bâtiments et les surfaces en eau pour toutes les structures, pour les structures ponctuelles (charbonnières, fours, cratères, dépressions, enclos), les zones d'habitation, les ronds-points et les cours d'eau, et, pour les structures linéaires (talus, fossés, chemins creux, parcellaires, tranchées), les routes et chemins, les voies ferrées, les cours d'eau, les talus et levées relevés par l'IGN et les canalisations. Les zones de regroupement de cratères ne sont pas comparées. Si le service de l'IGN ne répond pas, chaque page est redemandée deux fois avant d'y renoncer. Rien n'est supprimé : une détection posée sur un objet moderne change seulement de catégorie dans la légende.
+
+Une catégorie grise s'ajoute aux niveaux de fiabilité : **Écartées**, contour gris en pointillés, **décochée** à l'ouverture comme possible et douteux. Rien n'y est supprimé : elle range les détections que le plugin vous propose de laisser de côté, pour deux raisons.
+
+**La taille.** Une détection plus petite que l'aire minimale de sa structure (étape 3, réglages de la structure) y va, avec sa raison au survol : « surface de 32 m², sous le minimum de 50 m² ». Par défaut, les enclos et les enclos circulaires écartent sous 50 m² : ce ne sont que des miettes, aucun enclos d'entraînement n'est aussi petit. Les autres structures n'ont pas de minimum par défaut.
+
+**Le contexte moderne.** Elle reçoit aussi les détections dont les bâtiments recouvrent ensemble au moins 10 % de la surface, celles dont un plan d'eau aménagé (retenue, réservoir, bassin, canal, plan d'eau de gravière) recouvre au moins 10 %, et, pour les structures ponctuelles, celles dont un rond-point, un réservoir ou un château d'eau, une station d'épuration ou une déchèterie, un terrain de sport ou un parking recouvre au moins 10 %. Ces objets dessinent des cercles, des cuvettes et des enclos parfaits : bassins de décantation, cuves, terrains bordés de talus, parkings. Cochez-la pour les revoir. Au survol d'une détection grisée, l'infobulle dit pourquoi (« plan d'eau de gravière recouvrant 35 % de la détection ») et d'après quelle donnée ; une simple information, sans effet sur la légende, y apparaît aussi, précédée de « À noter ».
+
+La règle dépend de la structure détectée :
+
+| Structure | Ce qui la grise |
+|---|---|
+| Enclos, enclos circulaires | des bâtiments qui recouvrent au moins 10 % de la détection, un plan d'eau aménagé qui en recouvre au moins 10 %, un rond-point qui en recouvre au moins 10 %, un réservoir, une station d'épuration ou une déchèterie, un terrain de sport, un parking qui en recouvre au moins 10 % |
+| Grandes dépressions | des bâtiments qui recouvrent au moins 10 % de la détection, un rond-point, un réservoir, une station d'épuration ou une déchèterie, un terrain de sport, un parking qui en recouvre au moins 10 %. Un étang ne fait qu'informer : la cuvette peut l'avoir précédé |
+| Charbonnières, fours, cratères | des bâtiments qui recouvrent au moins 10 % de la détection, un plan d'eau aménagé qui en recouvre au moins 10 %, un rond-point qui en recouvre au moins 10 %, un réservoir, une station d'épuration ou une déchèterie, un terrain de sport, un parking qui en recouvre au moins 10 % |
+| Talus, fossés, chemins creux, parcellaires, tranchées | **rien** : une structure linéaire longe et traverse le bâti, l'eau et les routes sans en être un leurre. Elles ne passent dans « Écartées » que par l'aire minimale, si vous en réglez une ; ce qu'elles longent se lit dans `contexte_info` |
+
+Leur niveau de fiabilité ne change pas : il reste dans le champ `fiabilite`, dans le bilan et dans le rapport.
+
+Certains objets informent sans griser la détection, parce qu'ils ne disent pas qu'elle est un leurre :
+
+- un **bâtiment** à moins de 5 m, ou des bâtiments qui recouvrent moins de 10 % de la détection ; de même un **plan d'eau aménagé** qui en recouvre moins de 10 % : à côté, il ne dit pas qu'elle est un leurre ;
+- une **zone d'habitation** qui touche ou contient la détection : c'est le bâtiment qui grise, jamais la zone ;
+- une **mare** à moins de 15 m : sous une dépression, ce peut être une mardelle ;
+- une **retenue** sous un talus ou un fossé : une digue d'étang est un vrai talus, parfois ancien ;
+- un bâtiment **en ruine**, une **église**, une **chapelle**, un **château**, une **tour** : c'est du patrimoine, pas du contexte moderne ;
+- une surface en eau d'**origine naturelle** ;
+- un **cours d'eau** qui traverse la détection ou passe à moins de 15 m ;
+- des **ruines**, un **moulin** ou un **château** nommés par l'IGN parmi les zones d'habitation ;
+- un rond-point qui recouvre moins de 10 % de la détection ;
+- un **réservoir** ou un château d'eau, une **station d'épuration** ou une **déchèterie**, un **terrain de sport**, un **parking** qui recouvre moins de 10 % de la détection ;
+- un parking, une station d'épuration, une déchèterie ou un terrain de sport dont l'IGN n'a pas dessiné l'emprise, à moins de 15 m : la BD TOPO le pose alors en **carré de 5 m** à son emplacement, qui ne dit rien de sa forme. Le plugin le compte comme un point, le centre du carré : à côté de la détection, il informe (« parking signalé à 6 m (emprise non dessinée par l'IGN) ») ; s'il tombe dans la détection, il l'écarte (« parking signalé dans la détection »).
+
+Les zones d'habitation et ces cinq dernières lignes ne concernent que les structures ponctuelles.
+
+Une structure linéaire reçoit une information quand elle **longe** une route ou un chemin, une voie ferrée, un cours d'eau, un talus, une levée ou un front de carrière relevé par l'IGN, ou une canalisation, sur au moins 30 % de sa longueur : « longe un chemin sur 80 % de sa longueur ». La part est mesurée dans une bande de 6 m de part et d'autre de la ligne de l'IGN, tous les tronçons d'une même donnée réunis ; une détection qui ne fait que croiser une route n'en reçoit pas. C'est une information, jamais une exclusion : un chemin creux encore parcouru par un chemin reste un chemin creux, mais vous savez qu'il est connu.
+
+Toutes les structures reçoivent aussi le **patrimoine connu** à moins de 50 m : monuments historiques, sites et zones archéologiques des plans d'urbanisme, et zones de présomption de prescription archéologique là où la région les publie (Bretagne, Auvergne-Rhône-Alpes, Centre-Val de Loire). Ce n'est jamais une exclusion, c'est un indice favorable : « site connu à proximité : monument historique « Château de … » à 30 m », « site connu : dans la zone de présomption de prescription archéologique (Rennes, zone 12) ». Ces données ne couvrent pas toute la France : leur absence ne veut pas dire qu'il n'y a rien. Elles viennent d'autres services que la BD TOPO : `contexte_source` dit alors « données publiques ». Si le service des routes, des voies ferrées, des talus ou des canalisations ne répond pas, le journal le dit et le reste du croisement est fait.
+
+L'information se lit dans les attributs de la détection, en une phrase : « mare à 6 m (origine naturelle) ». Quand plusieurs données ont quelque chose à dire, chacune donne sa phrase, la plus proche d'abord, séparées par un point-virgule : « dans la zone d'habitation « Hameau du Ruisseau » ; bâtiment résidentiel à 3 m ». La phrase donne le nom courant de l'objet, puis le mot de l'IGN entre parenthèses quand il diffère : l'IGN appelle « retenue » tout plan d'eau artificiel retenu par une digue, étangs compris. Le journal de fin de traitement donne le nombre de détections grisées et informées. Sans connexion à internet, ou hors de France, le croisement n'est pas fait et le journal le dit ; le traitement n'échoue jamais pour cela.
+
+Pour voir l'objet qui a grisé ou informé une détection, lisez son attribut `contexte_source` : il nomme la donnée telle qu'elle s'appelle dans le Catalogue des flux, section « Données vectorielles » (Bâtiments, Zones d'habitation, Surfaces en eau et mares, Cours d'eau, Ronds-points, Routes et chemins, Voies ferrées, Canalisations) ou dans le groupe Contexte moderne (Talus, levées et fronts de carrière). Ajoutez-la au projet : ses contours se posent sur le relief. Plus direct : le bouton **Ajouter le contexte moderne** de la fin du traitement ajoute d'un coup ces données, telles qu'elles ont été lues pour le croisement. Elles sont enregistrées dans `livrable/contexte/contexte_moderne.gpkg` : le dossier transmis à un collègue montre les mêmes objets, sans connexion à internet.
 
 ## Les attributs d'une détection
 
@@ -80,7 +125,15 @@ Une couche issue d'un modèle sans fiabilité mesurée est catégorisée par tra
 | `longueur_m` | la longueur du polygone, en mètres (celle d'un rectangle de même aire et de même périmètre : la longueur d'un tracé, sans sens particulier pour une forme trapue) |
 | `model_name` | le modèle qui a produit la détection |
 | `cluster_id` | le regroupement auquel la détection appartient, le cas échéant |
+| `contexte_moderne` | ce qui grise la détection : « bâtiment agricole recouvrant 25 % de la détection », « étang (retenue) recouvrant 80 % de la détection », « rond-point recouvrant 60 % de la détection » ; plusieurs motifs séparés par un point-virgule ; vide sinon |
+| `contexte_info` | ce qui informe sans griser : « mare à 6 m (origine naturelle) », « bâtiment résidentiel à 3 m », « dans la zone d'habitation « … » », « cours d'eau traversant la détection », « longe un chemin sur 80 % de sa longueur », « site connu à proximité : monument historique « … » à 30 m » ; plusieurs motifs séparés par un point-virgule ; vide sinon |
+| `contexte_dist_m` | la distance, en mètres, à l'objet du premier motif (celui qui grise, sinon celui qui informe) |
+| `contexte_part` | la part de la détection que cet objet recouvre, en pour cent |
+| `contexte_source` | les données citées, sous leur nom dans le Catalogue des flux (« Bâtiments · Cours d'eau »), leur base et leur date de lecture ; remplie même quand rien n'a été trouvé, avec les données consultées |
+| `aussi_vu_comme` | l'autre structure sous laquelle le même objet a été détecté, avec son niveau de fiabilité : « Charbonnières (probable, 68 %) » ; vide quand l'objet n'est vu qu'une fois |
 | `corr_pred`, `validation` | deux champs vides, à votre usage pour corriger la classe et noter votre verdict |
+
+Deux modèles peuvent détecter le même objet sous deux structures différentes : une charbonnière se retrouve aussi parmi les dépressions circulaires grandes. Les deux détections sont gardées, et chacune nomme l'autre dans `aussi_vu_comme`. Aucune n'est écartée d'office : la plus fiable des deux n'est pas toujours la bonne. Pour les revoir ensemble, filtrez la couche par l'expression `"aussi_vu_comme" IS NOT NULL`.
 
 Les zones issues d'un regroupement portent en plus le nombre de détections qu'elles contiennent, leur surface en mètres carrés, leur densité par hectare, le score que dépassent les 10 % de détections les mieux notées (`conf_p90`) et l'élongation médiane des détections (`elong_med`).
 

@@ -1,0 +1,73 @@
+<qgis version="3.44.1-Solothurn">
+  <layer-tree-group>
+    <customproperties>
+      <Option />
+    </customproperties>
+    <layer-tree-group groupLayer="" checked="Qt::Checked" name="Synthèse · arbre — 18/11/2026 10:00" expanded="1">
+      <customproperties>
+        <Option type="Map">
+          <Option value="Synthèse · arbre — 18/11/2026 10:00" name="archeologia/analyse" type="QString" />
+        </Option>
+      </customproperties>
+      <layer-tree-group groupLayer="" checked="Qt::Checked" name="Qualité de la donnée" expanded="1">
+        <customproperties>
+          <Option />
+        </customproperties>
+        <layer-tree-layer source="./qualite/zones_mal_couvertes.gpkg|layername=zones_mal_couvertes" providerKey="ogr" legend_exp="" checked="Qt::Checked" patch_size="-1,-1" legend_split_behavior="0" name="Zones mal couvertes (&lt;30 %)" expanded="1" id="Zones_mal_couvertes___30____f59eb55f_b1a2_49fd_a8e9_667e477abcc3">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+        <layer-tree-layer source="./indices/COUVERTURE/tif/index_COUVERTURE.vrt" providerKey="gdal" legend_exp="" checked="Qt::Unchecked" patch_size="-1,-1" legend_split_behavior="0" name="Couverture · Couverture du sol mesuré" expanded="1" id="Couverture___Couverture_du_sol_mesur__2183be13_2947_4bdb_80ab_0b14f6ba6b64">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+        <layer-tree-layer source="./indices/DENSITE/tif/index_DENSITE.vrt" providerKey="gdal" legend_exp="" checked="Qt::Unchecked" patch_size="-1,-1" legend_split_behavior="0" name="Densité · Densité de points" expanded="1" id="Densit____Densit__de_points_bd2e5c40_78a7_45d0_b805_1429da4ff8d1">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+      </layer-tree-group>
+      <layer-tree-group groupLayer="" checked="Qt::Checked" name="Structures" expanded="1">
+        <customproperties>
+          <Option />
+        </customproperties>
+        <layer-tree-layer source="./detections/enclos/enclos.gpkg|layername=Enclos" providerKey="ogr" legend_exp="" checked="Qt::Checked" patch_size="-1,-1" legend_split_behavior="0" name="Enclos" expanded="1" id="Enclos_4a20ff1a_96ca_411f_8735_1ba39e0fcbfd">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+      </layer-tree-group>
+      <layer-tree-group groupLayer="" mutually-exclusive-child="1" checked="Qt::Checked" name="Indices" expanded="1" mutually-exclusive="1">
+        <customproperties>
+          <Option />
+        </customproperties>
+        <layer-tree-layer source="./indices/SVF_R10_D16_V1_N0/tif/index_SVF_R10_D16_V1_N0.vrt" providerKey="gdal" legend_exp="" checked="Qt::Unchecked" patch_size="-1,-1" legend_split_behavior="0" name="SVF · Creux &amp; dépressions · R10_D16_V1_N0" expanded="1" id="SVF___Creux___d_pressions___R10_D16_V1_N0_a898b849_22ca_43a7_8ce6_d41ef3339465">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+        <layer-tree-layer source="./indices/LD_A15_Rmin10_Rmax20_H1p7_V1/tif/index_LD_A15_Rmin10_Rmax20_H1p7_V1.vrt" providerKey="gdal" legend_exp="" checked="Qt::Checked" patch_size="-1,-1" legend_split_behavior="0" name="LD · Structures en relief · A15_Rmin10_Rmax20_H1p7_V1" expanded="1" id="LD___Structures_en_relief___A15_Rmin10_Rmax20_H1p7_V1_77389b6c_d656_4907_ba6d_3ef955a0fad0">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+        <layer-tree-layer source="./indices/MNT/tif/index_MNT.vrt" providerKey="gdal" legend_exp="" checked="Qt::Unchecked" patch_size="-1,-1" legend_split_behavior="0" name="MNT · Relief nu" expanded="1" id="MNT___Relief_nu_abe227f4_444d_49bf_9b54_53dc0d5a589d">
+          <customproperties>
+            <Option />
+          </customproperties>
+        </layer-tree-layer>
+      </layer-tree-group>
+    </layer-tree-group>
+    <custom-order enabled="0">
+      <item>Enclos_4a20ff1a_96ca_411f_8735_1ba39e0fcbfd</item>
+      <item>Zones_mal_couvertes___30____f59eb55f_b1a2_49fd_a8e9_667e477abcc3</item>
+      <item>SVF___Creux___d_pressions___R10_D16_V1_N0_a898b849_22ca_43a7_8ce6_d41ef3339465</item>
+      <item>Couverture___Couverture_du_sol_mesur__2183be13_2947_4bdb_80ab_0b14f6ba6b64</item>
+      <item>LD___Structures_en_relief___A15_Rmin10_Rmax20_H1p7_V1_77389b6c_d656_4907_ba6d_3ef955a0fad0</item>
+      <item>Densit____Densit__de_points_bd2e5c40_78a7_45d0_b805_1429da4ff8d1</item>
+      <item>MNT___Relief_nu_abe227f4_444d_49bf_9b54_53dc0d5a589d</item>
+    </custom-order>
+  </layer-tree-group>
+</qgis>

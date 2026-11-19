@@ -9,7 +9,7 @@ name=Archéolog'IA
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.99
 description=Détection de sites archéologiques par réseaux de neurones
-version=0.20.0
+version=0.21.0
 author=Valentin VIEUX
 email=valentin.vieux.pro@outlook.com
 about=Plugin pour automatiser la production d'indices de visualisation (avec la bibliothèque Relief Visualization Toolbox du ZRC SAZU et de l'Université de Ljubljana, intégrée sous licence Apache 2.0) à partir de données LiDAR ou de MNT et pour détecter des sites archéologiques à l'aide de réseaux de neurones (YOLO, RF-DETR détection ou segmentation)
@@ -21,7 +21,15 @@ repository=https://github.com/betagouv/archeologia-pipeline
 #
 
 hasProcessingProvider=no
-changelog=0.20.0 (2026-11-02)
+changelog=0.21.0 (2026-11-19)
+    * Catalogue des flux ouvert : cartes anciennes, photos aériennes, relief et géologie, données vectorielles cliquables (bâti, routes, eau, patrimoine, risques) et sources à l'essai, à ajouter au projet en un clic. La page « Relief par zone » n'apparaît que sur un poste équipé d'un catalogue de flux.
+    * Nouvelle catégorie « Écartées » dans la légende des détections, décochée à l'ouverture. Rien n'est supprimé : elle range les détections posées sur un objet moderne qui en recouvre au moins 10 % (bâtiments, plans d'eau aménagés, ronds-points, réservoirs, stations d'épuration et déchèteries, terrains de sport, parkings), et celles plus petites que l'aire minimale de leur structure (50 m² par défaut pour les enclos). L'infobulle dit pourquoi.
+    * Contexte des détections : les talus, chemins creux et parcellaires disent ce qu'ils longent (route, voie ferrée, cours d'eau, talus recensé par l'IGN), et toute structure signale un site archéologique connu à proximité (monuments historiques, archéologie des plans d'urbanisme, zones de présomption). Seules les données autour des détections sont téléchargées.
+    * Arbre des couches d'une analyse : « Qualité de la donnée », « Structures », puis « Indices », avec un seul indice visible à la fois, le LD d'abord.
+    * Détection : les enclos sont dessinés pleins, sans trou. Une structure coupée par le bord d'une fenêtre d'analyse ne remplace plus sa vue entière. « Possible » est coché d'emblée pour les parcellaires. La fiche des enclos cite le pré-apprentissage sur les enclos circulaires d'Irlande.
+    * MNT existants : la marge prise sur les dalles voisines suit le plus grand rayon demandé, sans couture du MSTP.
+    * Corrections : dalles choisies sur la carte, fichier de dalles dont les noms n'ont pas d'extension, étiquettes lisibles sur le relief, rechargement de l'extension sans fenêtre fantôme.
+ 0.20.0 (2026-11-02)
     * MNT existants en dalles jointives : les indices sont calculés avec 50 m de terrain pris sur les dalles voisines, puis rognés, comme pour le LiDAR HD IGN : plus de couture aux joints. Les indices changent à 10 m au plus des joints, France comprise.
     * Un dossier qui mélange des résolutions (ex. 1 m et 0,5 m) est refusé à l'étape 4, avec le compte des dalles par résolution : un dossier et un traitement par résolution. Les mosaïques prennent la résolution la plus fine.
     * Nom de l'analyse (étape 1) : groupe des couches dans QGIS, titre du projet et du rapport. Rapport : planche des fenêtres pour des sites dispersés, surface sans double comptage. Journal plus clair (⚡ carte graphique, 🔍 détection, images analysées).

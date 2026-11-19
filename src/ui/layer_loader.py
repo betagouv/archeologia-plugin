@@ -11,9 +11,14 @@ from typing import List, Optional
 
 from ..app.progress_reporter import USER_INFO
 from ..app.services.nom_analyse import (
+    GROUPE_INDICES,
+    PROPRIETE,
+    est_qualite,
     groupe_analyse,
     groupe_indices,
+    groupe_qualite,
     groupe_structures,
+    indice_coche,
     retirer_groupes_vides,
 )
 from ..app.services.vocabulaire import titre_dossier_image
@@ -105,14 +110,15 @@ def _fiabilite_symbol(base_color, spec):
     })
 
 
-def _apply_fiabilite_style(layer, base_color, cats, logger: logging.Logger) -> None:
+def _apply_fiabilite_style(layer, base_color, cats, logger: logging.Logger, classe: str = "") -> None:
     """Symbologie catégorisée sur ``fiabilite`` (2026-09-09) : contour seul dans la
     couleur de la classe, déclinée en luminosité par catégorie — exactement le
     rendu historique de ``_apply_confidence_style``, avec les catégories de
     fiabilité à la place des tranches de score (``app.services.fiabilite.STYLE_SPEC``).
     Libellés de légende = niveau garanti (« Probable · ≥ 60 % de vrais »),
     catégorie la plus sûre en tête. Les niveaux « possible » et « douteux » sont
-    présents mais décochés à l'ouverture (``fiabilite.visible_par_defaut``) : l'état
+    présents mais décochés à l'ouverture (``fiabilite.visible_par_defaut``, sauf exception
+    de la ``classe`` : « possible » coché pour les parcellaires, 2026-11-10) : l'état
     est enregistré dans le projet .qgs comme dans la couche chargée en direct."""
     try:
         from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory
@@ -124,7 +130,7 @@ def _apply_fiabilite_style(layer, base_color, cats, logger: logging.Logger) -> N
         for c in sorted(cats, key=lambda x: x.seuil, reverse=True):
             symbol = _fiabilite_symbol(base_color, STYLE_SPEC[c.categorie])
             categorie = QgsRendererCategory(c.label, symbol, labels.get(c.categorie, c.label))
-            categorie.setRenderState(visible_par_defaut(c.categorie))
+            categorie.setRenderState(visible_par_defaut(c.categorie, classe))
             categories.append(categorie)
         if not categories:
             return
@@ -141,7 +147,8 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     from ..app.services.fiabilite import maptip_html, texte_resume
 
     modele = str(entree.get("modele") or "")
-    resume = texte_resume(modele, str(entree.get("classe") or layer.name()), cats,
+    # Libellé de la couche (« Charbonnières »), jamais l'identifiant de classe (2026-11-18).
+    resume = texte_resume(modele, layer.name() or str(entree.get("classe") or ""), cats,
                           str(entree.get("provenance") or ""))
     try:
         md = layer.metadata()
@@ -159,7 +166,7 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Résumé de couche non écrit: {e}")
     try:
-        layer.setMapTipTemplate(maptip_html(cats, modele))
+        layer.setMapTipTemplate(maptip_html(cats, modele, structure=layer.name()))
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Infobulle de détection non écrite: {e}")
 
@@ -199,6 +206,44 @@ def _parse_gpkg_source(shp_path_str: str):
             else layer_name
         )
     return _gpkg, layer_name, class_name
+
+
+def _ajouter_contexte_moderne(layer, logger) -> None:
+    """Catégorie grise « Contexte moderne » (2026-11-11) : le rendu catégorisé déjà posé (fiabilité
+    ou tranches de confiance) passe sur une expression qui renvoie « Contexte moderne » quand le champ
+    ``contexte_moderne`` est rempli, sinon la valeur d'origine. Le champ ``fiabilite`` n'est jamais
+    réécrit : bilan, rapport et fiabilité observée en dépendent. Couche sans le champ (traitement
+    antérieur, option coupée) : rien ne change, une expression sur un champ absent masquerait tout."""
+    try:
+        from qgis.core import QgsCategorizedSymbolRenderer, QgsFillSymbol, QgsRendererCategory
+
+        from ..app.services.contexte_moderne import (
+            CATEGORIE_LEGENDE, CHAMPS_ECART, COULEUR_LEGENDE, est_lineaire, expression_legende,
+        )
+
+        champs = tuple(c for c in CHAMPS_ECART if layer.fields().indexFromName(c) >= 0)
+        if not champs:
+            return
+        # Sans le modèle d'une comparaison A/B (« Charbonnières — Structures linéaires… », 2026-11-18).
+        if est_lineaire(layer.name().split(" — ")[0]):
+            # jamais écartée par le contexte moderne ; seulement par une aire minimale réglée
+            champs = tuple(c for c in champs if c != "contexte_moderne")
+            if not champs:
+                return
+        renderer = layer.renderer()
+        if not isinstance(renderer, QgsCategorizedSymbolRenderer):
+            return
+        if any(c.value() == CATEGORIE_LEGENDE for c in renderer.categories()):
+            return
+        renderer.setClassAttribute(expression_legende(renderer.classAttribute(), champs))
+        symbole = QgsFillSymbol.createSimple({"color": "0,0,0,0", "outline_color": COULEUR_LEGENDE,
+                                              "outline_width": "0.5", "outline_style": "dash"})
+        categorie = QgsRendererCategory(CATEGORIE_LEGENDE, symbole, CATEGORIE_LEGENDE)
+        categorie.setRenderState(False)   # décochée à l'ouverture, comme « possible » et « douteux »
+        renderer.addCategory(categorie)
+        layer.triggerRepaint()
+    except Exception as e:  # noqa: BLE001 — la légende d'origine reste
+        logger.warning(f"Catégorie « Écartées » non ajoutée : {e}")
 
 
 def build_detection_vector_layer(
@@ -244,10 +289,12 @@ def build_detection_vector_layer(
         # la portent ; sinon tranches de confiance historiques (conf_bin).
         entree, cats = _fiabilite_for_source(ogr_source, layer)
         if cats:
-            _apply_fiabilite_style(layer, base_color, cats, logger)
+            _apply_fiabilite_style(layer, base_color, cats, logger,
+                                   classe=str((entree or {}).get("classe") or ""))
             _apply_fiabilite_notices(layer, entree, cats, logger)
         else:
             _apply_confidence_style(layer, base_color, confidence_threshold, logger)
+    _ajouter_contexte_moderne(layer, logger)
     _apply_verdict_form(layer)
     return layer
 
@@ -370,9 +417,10 @@ def load_result_layers(
     applique la symbologie, puis zoome sur l'étendue combinée (déféré).
 
     Tout va sous le groupe de l'analyse ``titre_analyse`` (« <nom> — JJ/MM/AAAA HH:MM »,
-    ``nom_analyse.titre_du_livrable``, 0.19.0) : la couche QA en tête, « Structures », puis
-    « Indices » (les mosaïques, MNT en dernier) ; deux analyses = deux groupes, recharger la même
-    réutilise son groupe et ses couches (``_reuse_existing``). Sans titre : arbre à plat d'avant.
+    ``nom_analyse.titre_du_livrable``, 0.19.0) : « Qualité de la donnée » (couche QA en tête, puis
+    densité et couverture décochées), « Structures », puis « Indices » (groupe exclusif, LD coché,
+    MNT en dernier ; 2026-11-18) ; deux analyses = deux groupes, recharger la même réutilise son
+    groupe et ses couches (``_reuse_existing``, rangées dans le bon groupe). Sans titre : arbre à plat d'avant.
     Toutes les couches de détection vont sous le groupe « Structures » (N-02, 2026-10-25) ;
     ``derived_slugs`` (slugs d'entités dérivées ou comparées) + ``entity_labels``
     (slug→libellé) y font un **sous-groupe** par libellé (zone + constituants ensemble,
@@ -405,7 +453,14 @@ def load_result_layers(
             rvt_type = _rvt_type_of(vrt_path_str)
             layer_name = titre_dossier_image(rvt_type)   # « SVF · Creux & dépressions · R10_… » (N-03)
 
-            if _reuse_existing(project, layer_name, vrt_path_str, loaded_layers, combined_extent):
+            # Densité et couverture : « Qualité de la donnée », décochées (2026-11-18) ; le reste : « Indices ».
+            qualite = est_qualite(rvt_type)
+            parent = groupe_analyse(root, titre_analyse)
+            cible = groupe_qualite(parent) if qualite else groupe_indices(parent)
+            existante = _reuse_existing(project, layer_name, vrt_path_str, loaded_layers, combined_extent)
+            if existante:
+                # chargée avant cette version : rangée, jamais en double
+                _ranger(root, existante, cible, decochee=qualite)
                 logger.info(f"Couche raster déjà présente: {layer_name}")
                 continue
 
@@ -415,7 +470,9 @@ def load_result_layers(
                 if rvt_type == "COUVERTURE":
                     apply_coverage_raster_symbology(layer, coverage_threshold_percent, logger)
                 project.addMapLayer(layer, False)
-                groupe_indices(groupe_analyse(root, titre_analyse)).addLayer(layer)
+                noeud = cible.addLayer(layer)
+                if qualite and noeud is not None:
+                    noeud.setItemVisibilityChecked(False)
                 loaded_layers.append(layer)
                 combined_extent = _combine(combined_extent, layer.extent())
                 loaded_count += 1
@@ -469,7 +526,10 @@ def load_result_layers(
             if not qa_path:
                 continue
             qa_str = str(qa_path)
-            if _reuse_existing(project, qa_name, qa_str, loaded_layers, combined_extent):
+            cible = groupe_qualite(groupe_analyse(root, titre_analyse))
+            existante = _reuse_existing(project, qa_name, qa_str, loaded_layers, combined_extent)
+            if existante:
+                _ranger(root, existante, cible, en_tete=True)
                 logger.info(f"Couche QA déjà présente: {qa_name}")
                 continue
             layer = build_low_coverage_vector_layer(qa_str, coverage_threshold_percent, logger)
@@ -477,11 +537,14 @@ def load_result_layers(
                 logger.warning(f"Impossible de charger la couche QA: {qa_str}")
                 continue
             project.addMapLayer(layer, False)
-            groupe_analyse(root, titre_analyse).insertLayer(0, layer)  # au-dessus des structures et des rasters
+            cible.insertLayer(0, layer)  # en tête de « Qualité de la donnée », au-dessus de la couverture
             loaded_layers.append(layer)
             combined_extent = _combine(combined_extent, layer.extent())
             loaded_count += 1
             logger.info(f"Couche QA chargée: {qa_name}")
+
+        if titre_analyse:
+            regler_indices(groupe_analyse(root, titre_analyse))
 
         if loaded_count > 0:
             from ..app.user_narrator import _human_count
@@ -542,8 +605,41 @@ def _ensure_layer_crs(layer, logger, fallback_authid: Optional[str] = None) -> N
         logger.warning(f"Impossible de fixer le CRS de « {layer.name()} »: {e}")
 
 
-def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent) -> bool:
-    """Si une couche de même nom + source existe déjà, la réutilise.
+def regler_indices(parent) -> None:
+    """Le groupe « Indices » d'une analyse est exclusif (un indice affiché à la fois, 2026-11-18) : le LD
+    coché, sinon le premier (``nom_analyse.indice_coche``). Jamais à la racine (analyses sans titre,
+    rasters à plat). Partagé par le chargement en direct et ``qgs_writer``."""
+    from qgis.core import QgsLayerTree
+
+    if parent.customProperty(PROPRIETE) is None:
+        return
+    groupe = parent.findGroup(GROUPE_INDICES)
+    if groupe is None or not groupe.children():
+        return
+    types = [_rvt_type_of(n.layer().source()) if QgsLayerTree.isLayer(n) and n.layer() is not None else ""
+             for n in groupe.children()]
+    groupe.setIsMutuallyExclusive(True, indice_coche(types))
+
+
+def _ranger(root, couche, cible, en_tete: bool = False, decochee: bool = False) -> None:
+    """Déplace le nœud d'une couche déjà chargée dans ``cible`` (une analyse chargée avant la version qui
+    a créé ce groupe) ; rien s'il y est déjà (le choix de l'utilisateur reste). Jamais de doublon : le
+    nœud d'origine est retiré. ``decochee`` : la couche arrive décochée, comme une couche neuve."""
+    noeud = root.findLayer(couche.id())
+    if noeud is None or noeud.parent() is cible:
+        return
+    copie = noeud.clone()
+    if en_tete:
+        cible.insertChildNode(0, copie)
+    else:
+        cible.addChildNode(copie)
+    if decochee:
+        copie.setItemVisibilityChecked(False)
+    noeud.parent().removeChildNode(noeud)
+
+
+def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent):
+    """Si une couche de même nom + source existe déjà, la réutilise et la rend (sinon ``None``).
 
     Défensif : on force une relecture du datasource (``reload``) avant réutilisation.
     Si le fichier (VRT régénéré, GPKG réécrit) a changé sur disque depuis son
@@ -552,7 +648,9 @@ def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent)
     parade principale ; ceci couvre une couche chargée par un autre chemin.
     """
     for existing in project.mapLayersByName(layer_name):
-        if existing.source() == source:
+        # Même nom et même fichier : la couche QA est chargée en « chemin|layername=… » mais demandée par
+        # son seul chemin — sans cette tolérance, elle se dupliquait à chaque rechargement (2026-11-18).
+        if existing.source() == source or existing.source().split("|")[0] == str(source).split("|")[0]:
             try:
                 existing.reload()
                 existing.triggerRepaint()
@@ -560,8 +658,8 @@ def _reuse_existing(project, layer_name, source, loaded_layers, combined_extent)
                 pass
             loaded_layers.append(existing)
             _combine(combined_extent, existing.extent())
-            return True
-    return False
+            return existing
+    return None
 
 
 def _retirer_groupes_vides(project) -> None:
@@ -609,6 +707,79 @@ def purge_output_dir_layers(output_dir, logger: logging.Logger) -> int:
     except Exception as e:  # noqa: BLE001 — purge best-effort, jamais bloquante
         logger.warning(f"Purge des couches périmées impossible: {e}")
         return 0
+
+
+def detacher_couches_du_dossier(output_dir, logger: logging.Logger) -> list:
+    """Au lancement d'un traitement, **détache** de leur fichier les couches du projet qui lisent le dossier de
+    sortie, sans les retirer (demande de l'utilisateur, 2026-11-12 : lancer un traitement ne doit fermer aucune
+    couche ouverte, qu'elle vienne d'un traitement ou qu'il l'ait ouverte lui-même). La couche reste dans
+    l'arbre, à sa place, cochée ou non, avec son style ; elle est simplement indisponible le temps du calcul.
+
+    Le détachement est nécessaire : QGIS garde ouverts le VRT et le GeoPackage d'une couche chargée, Windows
+    verrouille alors le fichier et le traitement ne peut pas le réécrire (mesuré : ``PermissionError`` couche
+    ouverte, fichier libre couche détachée, sous QGIS 3.44 et 4.0.3) ; et QGIS réécrirait son VRT périmé
+    par-dessus le nouveau. Les couches visées sont celles de ``select_layers_to_purge`` (par chemin, jamais par
+    nom). Rend ``[(id, source, nom, fournisseur), …]`` pour :func:`rattacher_couches`. Thread principal."""
+    try:
+        from qgis.core import QgsProject
+
+        from ..app.services.layer_purge import select_layers_to_purge
+
+        if not output_dir:
+            return []
+        project = QgsProject.instance()
+        couches = project.mapLayers()
+        detachees = []
+        for lid in select_layers_to_purge({i: c.source() for i, c in couches.items()}, str(output_dir)):
+            couche = couches[lid]
+            detachees.append((lid, couche.source(), couche.name(), couche.providerType()))
+            couche.setDataSource("", couche.name(), couche.providerType())      # libère le fichier, garde le style
+        if detachees:
+            logger.info(f"{len(detachees)} couche(s) du dossier de sortie mise(s) en attente le temps du "
+                        "traitement ; elles seront rebranchées à la fin.")
+        return detachees
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        logger.warning(f"Mise en attente des couches du dossier de sortie impossible: {e}")
+        return []
+
+
+def rattacher_couches(detachees, logger: logging.Logger) -> tuple:
+    """Rebranche à la fin du traitement (réussi, annulé ou en erreur) les couches de
+    :func:`detacher_couches_du_dossier` sur leur fichier, relu à neuf. Une couche que l'utilisateur a retirée
+    entre-temps est ignorée ; une couche dont le fichier n'existe plus (structure qui n'est plus produite) est
+    retirée, et son groupe s'il reste vide. Rend ``(rebranchées, retirées)``. Thread principal."""
+    try:
+        import os
+
+        from qgis.core import QgsProject
+
+        from ..app.services.layer_purge import _strip_decoration
+
+        project = QgsProject.instance()
+        rebranchees, perdues = 0, []
+        for lid, source, nom, fournisseur in detachees or []:
+            couche = project.mapLayer(lid)
+            if couche is None:
+                continue
+            if not os.path.exists(_strip_decoration(source)):
+                perdues.append(lid)
+                continue
+            couche.setDataSource(source, nom, fournisseur)
+            if couche.isValid():
+                couche.triggerRepaint()
+                rebranchees += 1
+            else:
+                perdues.append(lid)
+        if perdues:
+            project.removeMapLayers(perdues)
+            _retirer_groupes_vides(project)
+        if rebranchees or perdues:
+            logger.info(f"{rebranchees} couche(s) rebranchée(s) sur le dossier de sortie"
+                        + (f", {len(perdues)} retirée(s) (fichier disparu)." if perdues else "."))
+        return rebranchees, len(perdues)
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        logger.warning(f"Rebranchement des couches impossible: {e}")
+        return 0, 0
 
 
 def _deferred_zoom(loaded_layers, project, logger) -> None:

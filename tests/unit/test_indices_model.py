@@ -32,20 +32,19 @@ class TestCatalog:
         assert p.description
         assert p.is_rvt is True
 
-    def test_defauts_coches(self):
-        # Trois images cochées d'avance (lot 3, 2026-10-24) : plus de pastille rouge à
-        # la première ouverture, et un premier regard utile (relief nu, creux, reliefs).
+    def test_rien_n_est_coche_d_avance(self):
+        # Décision de l'utilisateur (2026-11-12) : plus de produits recommandés cochés d'avance.
         d = default_products()
         assert set(d.keys()) == {p.key for p in all_products()}
-        assert {k for k, v in d.items() if v} == {"MNT", "SVF", "LD"}
+        assert not any(d.values())
 
     def test_sections_partitionnent_les_produits(self):
-        from app.services.indices_model import other_rvt_keys, quality_keys, recommended_keys
-        assert recommended_keys() == ["MNT", "SVF", "LD"]
-        assert quality_keys() == ["DENSITE", "COUVERTURE"]
-        autres = other_rvt_keys()
-        assert "SVF" not in autres and "LD" not in autres and "MNT" not in autres
-        tout = recommended_keys() + autres + quality_keys()
+        # Deux sections : « MNT et qualité de la donnée », puis « Indices de visualisation ».
+        from app.services.indices_model import mnt_et_qualite_keys, rvt_keys
+        assert mnt_et_qualite_keys() == ["MNT", "DENSITE", "COUVERTURE"]
+        indices = rvt_keys()
+        assert "SVF" in indices and "LD" in indices and "MNT" not in indices
+        tout = mnt_et_qualite_keys() + indices
         assert sorted(tout) == sorted(p.key for p in all_products())
         assert len(tout) == len(set(tout))
 

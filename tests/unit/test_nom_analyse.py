@@ -141,7 +141,7 @@ def _charger(root, titre, *, mnt=True, derive=False):
     na.groupe_structures(parent).addLayer(_Couche("Cratères"))
     if derive:
         na.groupe_structures(parent, "Regroupement de cratères").addLayer(_Couche("Zones"))
-    parent.insertLayer(0, _Couche("Zones mal couvertes (<30 %)"))
+    na.groupe_qualite(parent).insertLayer(0, _Couche("Zones mal couvertes (<30 %)"))
     return parent
 
 
@@ -151,12 +151,43 @@ def test_arbre_groupe_parent_structures_indices_qa():
     _charger(root, "be_vl · indices — 01/11/2026 14:05", derive=True)
     assert root.arbre() == [
         ("be_vl · indices — 01/11/2026 14:05", [
-            "Zones mal couvertes (<30 %)",
+            ("Qualité de la donnée", ["Zones mal couvertes (<30 %)"]),
             ("Structures", [("Regroupement de cratères", ["Zones"]), "Cratères"]),
             ("Indices", ["MNT · Relief nu"]),
         ]),
         "OpenStreetMap",
     ]
+
+
+def test_qualite_structures_indices_dans_cet_ordre_quel_que_soit_l_ordre_de_creation():
+    """2026-11-18 : le chargement en direct crée d'abord les rasters (COUVERTURE → « Qualité de la
+    donnée »), puis les structures, puis la couche QA ; le .qgs fait l'inverse. Même arbre."""
+    for ordre in (("qualite", "structures", "indices"), ("indices", "structures", "qualite"),
+                  ("structures", "qualite", "indices"), ("indices", "qualite", "structures")):
+        root = _Noeud("")
+        parent = na.groupe_analyse(root, "A — 01/11/2026 14:05")
+        for quoi in ordre:
+            {"qualite": na.groupe_qualite, "structures": na.groupe_structures,
+             "indices": na.groupe_indices}[quoi](parent).addLayer(_Couche(quoi))
+        assert [n for n, _ in parent.arbre()] == ["Qualité de la donnée", "Structures", "Indices"], ordre
+
+
+def test_les_produits_de_qualite_sont_ceux_de_l_etape_2():
+    """Le libellé et la liste viennent de la section « Qualité de la donnée » de l'étape 2."""
+    from app.services.indices_model import quality_keys
+
+    assert na.GROUPE_QUALITE == "Qualité de la donnée"
+    assert set(quality_keys()) == {"DENSITE", "COUVERTURE"}
+    assert na.est_qualite("COUVERTURE") and na.est_qualite("DENSITE")
+    assert not na.est_qualite("LD_A15_Rmin10_Rmax20_H1p7_V1") and not na.est_qualite("MNT")
+
+
+def test_indice_coche_le_ld_sinon_le_premier():
+    assert na.indice_coche(["SVF_R10_D16_V1_N0", "LD_A15_Rmin10_Rmax20_H1p7_V1", "MNT"]) == 1
+    assert na.indice_coche(["LD", "MNT"]) == 0
+    assert na.indice_coche(["SVF_R10_D16_V1_N0", "VAT_T0_B0", "MNT"]) == 0
+    assert na.indice_coche(["MNT"]) == 0
+    assert na.indice_coche(["LDX_bidon", "LD_A15"]) == 1        # « LD » est un sigle, pas un préfixe libre
 
 
 def test_deux_analyses_deux_groupes_la_derniere_en_haut():
@@ -181,6 +212,7 @@ def test_sans_titre_l_arbre_reste_a_plat():
     root = _Noeud("")
     assert na.groupe_analyse(root, "") is root
     assert na.groupe_indices(root) is root      # rasters à la racine, comme avant 0.19.0
+    assert na.groupe_qualite(root) is root      # pas de groupe « Qualité » ni d'exclusivité à la racine
 
 
 def test_purge_retire_les_groupes_du_plugin_vides_jamais_ceux_de_l_utilisateur():
@@ -193,7 +225,8 @@ def test_purge_retire_les_groupes_du_plugin_vides_jamais_ceux_de_l_utilisateur()
     for n in vieux.children():
         if not _est_groupe(n):
             vieux.removeChildNode(n)
-    for g in (na.groupe_indices(vieux), na.groupe_structures(vieux, "Regroupement de cratères")):
+    for g in (na.groupe_indices(vieux), na.groupe_qualite(vieux),
+              na.groupe_structures(vieux, "Regroupement de cratères")):
         for n in g.children():
             g.removeChildNode(n)
     s = na.groupe_structures(vieux)
@@ -205,7 +238,7 @@ def test_purge_retire_les_groupes_du_plugin_vides_jamais_ceux_de_l_utilisateur()
     na.retirer_groupes_vides(root, _est_groupe)
     noms = [n.name() for n in root.children()]
     assert noms == ["B — 01/11/2026 15:30", "A — 01/11/2026 14:05", "Mon groupe vide", "A — 01/11/2026 14:05"]
-    assert vieux.children() == [perso]                      # Structures et Indices vides retirés
+    assert vieux.children() == [perso]                      # Qualité, Structures et Indices vides retirés
     assert garde.findGroup("Structures") is not None
     vieux.removeChildNode(perso)
     na.retirer_groupes_vides(root, _est_groupe)

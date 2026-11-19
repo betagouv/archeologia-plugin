@@ -88,14 +88,15 @@ def test_routage_par_entite_et_couches_renommees(env, modele):
 
 
 def test_filtrage_par_aire_minimale_epargne_les_couches_de_synthese(env, modele, monkeypatch):
-    """min_area_m2 : la petite boîte (25 m²) disparaît, la grande reste ; une couche nommée comme la sortie
-    d'une règle de clustering n'est pas rabotée."""
+    """min_area_m2 : la petite boîte (25 m²) est écartée (gardée, ``ecart_taille`` rempli, 2026-11-19), la
+    grande reste ; une couche nommée comme la sortie d'une règle de clustering n'est pas rabotée."""
     _ecrire(env, [Detection(0, 0.9, (20.0, 20.0, 30.0, 30.0)), Detection(1, 0.8, (100.0, 100.0, 180.0, 180.0))])
     entites = [{"id": "fours", "slug": "fours", "classes": ["four"], "is_derived": False},
                {"id": "tertres", "slug": "tertres", "classes": ["tumulus"], "is_derived": False}]
     _lancer(env, modele, entities=entites, min_area_m2=100.0)
     detections = env["out"] / "livrable" / "detections"
-    assert not (detections / "fours" / "fours.gpkg").exists()           # vidé par le filtre → supprimé
+    fours = gpd.read_file(detections / "fours" / "fours.gpkg")
+    assert len(fours) == 1 and fours.iloc[0]["ecart_taille"].startswith("surface de")   # écartée, gardée
     assert len(gpd.read_file(detections / "tertres" / "tertres.gpkg", layer="tumulus")) == 1
 
 

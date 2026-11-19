@@ -74,6 +74,9 @@ class EntityDef:
     description: str = ""
     display_order: int = 1_000_000
     morphology: str = _MORPHOLOGY_FALLBACK   # circulaire | lineaire | zone | autre
+    #: Aire minimale par défaut de la structure (m²), avant celle du modèle ; ``None`` = celle du modèle.
+    #: 50 m² pour les enclos (décision du 2026-11-19).
+    min_area_m2: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -198,6 +201,10 @@ def load_entities_catalog(catalog_path: Any) -> List[EntityDef]:
         morpho = str(entry.get("morphology") or "").strip().lower()
         if morpho not in VALID_MORPHOLOGIES:
             morpho = _MORPHOLOGY_FALLBACK
+        try:
+            aire = float(entry["min_area_m2"]) if entry.get("min_area_m2") is not None else None
+        except (TypeError, ValueError):
+            aire = None
         result.append(
             EntityDef(
                 id=eid,
@@ -205,6 +212,7 @@ def load_entities_catalog(catalog_path: Any) -> List[EntityDef]:
                 description=str(entry.get("description") or ""),
                 display_order=order,
                 morphology=morpho,
+                min_area_m2=aire,
             )
         )
     result.sort(key=lambda e: (e.display_order, e.id))
@@ -1066,6 +1074,8 @@ def resolve_runs_from_entities(
     coverage_by_id = {ec.entity.id: ec for ec in build_entity_coverage(catalog, installed_models)}
     models_by_name = {m.name: m for m in installed_models}
     label_by_id = {e.id: e.label for e in catalog}
+    # Aire minimale par défaut d'une structure (catalogue, 2026-11-19) : avant celle du modèle.
+    aire_catalogue = {e.id: e.min_area_m2 for e in catalog if e.min_area_m2 is not None}
 
     # (modèle, rvt) -> {classes: set, entities: [ids]} pour pouvoir agréger les
     # seuils surchargés par entité au niveau du run. Une entité peut porter
@@ -1161,7 +1171,7 @@ def resolve_runs_from_entities(
         # (output_paths.aires_par_entite). L'ancien min() des seules surcharges imposait l'aire d'une entité aux
         # autres entités du modèle (« Chemins creux » perdait des détections réglées sur « Parcellaire »).
         aire_par_entite = {
-            e: float(entity_thresholds.get(e, {}).get("min_area_m2", model.default_min_area))
+            e: float(entity_thresholds.get(e, {}).get("min_area_m2", aire_catalogue.get(e, model.default_min_area)))
             for e in group["entities"]
         }
         for e in incluses:   # entité incluse par une dérivée : réglée sur la carte de la dérivée

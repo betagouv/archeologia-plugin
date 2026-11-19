@@ -58,7 +58,7 @@ class SourcePage(QWidget):
         self._tile_tool = None
         self._grid_layer = None
         self._prev_map_tool = None
-        self._geometrie_avant_carte = None   # géométrie de l'assistant avant le choix sur la carte (H-02)
+        self._masquee_pour_la_carte = False   # l'assistant est masqué le temps du choix sur la carte
         self._msg_item = None
         self._validate_btn = None
         # Bandeau persistant « zoomez pour voir les dalles » + canevas connecté à
@@ -480,13 +480,18 @@ class SourcePage(QWidget):
             )
             return
         layer.removeSelection()
+        # Rouvrir le choix retrouve la liste du champ déjà sélectionnée, à compléter (constat du 2026-11-10 :
+        # « 0 dalle sur la carte alors que 25 sélectionnées ») ; « Tout effacer » repart de zéro.
+        self._preselectionner_depuis_le_champ(layer)
         zoom_to_france_metro_if_hidden(layer)  # cadre la métropole si la vue est perdue (U1)
 
         canvas = iface.mapCanvas()
         self._grid_layer = layer
         self._prev_map_tool = canvas.mapTool()
         tool = TilePickerMapTool(canvas, layer)
-        tool.selection_changed.connect(self._on_tiles_selection_changed)
+        # Le compteur suit la COUCHE (source de vérité), pas le seul outil : une sélection faite avec l'outil
+        # natif de QGIS ou depuis le panneau Couches compte aussi (déconnecté au teardown).
+        layer.selectionChanged.connect(self._on_grid_selection_changed)
         tool.cancelled.connect(self._on_tiles_cancel)
         tool.too_zoomed_out.connect(self._on_too_zoomed_out)
         self._tile_tool = tool
@@ -501,6 +506,7 @@ class SourcePage(QWidget):
         )
         self._validate_btn = QPushButton("Valider (0 dalle)", widget)
         self._validate_btn.clicked.connect(self._on_tiles_validate)
+        self._on_tiles_selection_changed(layer.selectedFeatureCount())   # dalles resélectionnées depuis le champ
         clear_btn = QPushButton("Tout effacer", widget)
         clear_btn.clicked.connect(self._on_clear_selection)
         cancel_btn = QPushButton("Annuler", widget)
@@ -519,19 +525,41 @@ class SourcePage(QWidget):
         self._refresh_scale_notice()
 
         self._dalles_btn.setEnabled(False)
-        # Dégager le canevas SANS réduire l'assistant (H-02, 2026-10-24) : la fenêtre
-        # garde sa géométrie, se resserre à sa largeur minimale et se range contre le
-        # bord droit de l'écran ; elle reprend sa place à la fin. NE PAS utiliser
-        # lower() : sur Windows, abaisser une fenêtre possédée par QGIS minimise QGIS.
+        # Dégager le canevas en MASQUANT l'assistant (2026-11-12) : sa taille et sa place ne
+        # changent plus (l'ancien resserrement contre le bord droit, H-02, les modifiait) ; une
+        # barrette flottante dit qu'il attend, la barre de message de QGIS porte le compte et
+        # « Valider ». NE PAS utiliser lower() ni la réduire : sur Windows, abaisser une
+        # fenêtre possédée par QGIS minimise QGIS, et la réduire laisse une barre minuscule.
         try:
             win = self.window()
-            self._geometrie_avant_carte = win.geometry()
-            ecran = win.screen().availableGeometry()
-            largeur = max(win.minimumWidth(), win.minimumSizeHint().width())
-            win.setGeometry(ecran.right() - largeur - 8, win.y(), largeur, win.height())
-            win.raise_()
+            if hasattr(win, "masquer_vers_barrette"):
+                win.masquer_vers_barrette("Choix des dalles sur la carte")
+                self._masquee_pour_la_carte = True
         except Exception:
-            self._geometrie_avant_carte = None
+            self._masquee_pour_la_carte = False
+
+    def _preselectionner_depuis_le_champ(self, layer) -> None:
+        """Sélectionne sur la grille les dalles de la liste ``.txt`` du champ (celle de la carte ou une liste
+        fournie) : on la complète au lieu de repartir de zéro. Silencieux si le champ n'en porte pas."""
+        from ...app.services.tile_selection import urls_de_la_liste
+
+        chemin = Path(self._source_edit.text().strip())
+        if chemin.suffix.lower() != ".txt" or not chemin.is_file():
+            return
+        try:
+            urls = urls_de_la_liste(chemin.read_text(encoding="utf-8"))
+        except OSError:
+            return
+        if not urls:
+            return
+        valeurs = ", ".join("'" + u.replace("'", "''") + "'" for u in urls)
+        layer.selectByExpression(f'"url_telech" IN ({valeurs})')
+        logger.info("Sélection dalles : %s dalle(s) de la liste du champ resélectionnée(s) (liste : %s)",
+                    layer.selectedFeatureCount(), len(urls))
+
+    def _on_grid_selection_changed(self, *_args) -> None:
+        if self._grid_layer is not None:
+            self._on_tiles_selection_changed(self._grid_layer.selectedFeatureCount())
 
     def _on_tiles_selection_changed(self, n: int) -> None:
         if self._validate_btn is not None:
@@ -620,7 +648,7 @@ class SourcePage(QWidget):
             return  # rester en mode sélection
         from qgis.core import QgsFeatureRequest
 
-        from ...app.services.tile_selection import estimate_download_size, format_dalles_urls
+        from ...app.services.tile_selection import estimate_download_size, format_dalles_urls, urls_de_la_liste
 
         n = len(ids)
         if n > _LARGE_SELECTION_THRESHOLD:
@@ -651,7 +679,9 @@ class SourcePage(QWidget):
             export_dir = self._plugin_root() / "data" / "temp_zones"
             export_dir.mkdir(parents=True, exist_ok=True)
             out_path = export_dir / "dalles_selection.txt"
-            out_path.write_text(format_dalles_urls(tiles), encoding="utf-8")
+            contenu = format_dalles_urls(tiles)
+            out_path.write_text(contenu, encoding="utf-8")
+            n_ecrites = len(urls_de_la_liste(contenu))   # sans URL http ou en double : pas écrites
         except Exception:
             logger.exception("Échec de l'enregistrement de la sélection (n=%s)", n)
             QMessageBox.warning(
@@ -667,12 +697,13 @@ class SourcePage(QWidget):
 
             if iface is not None:
                 iface.messageBar().pushMessage(
-                    f"{n} dalle(s) enregistrée(s)", level=Qgis.MessageLevel.Success, duration=4
+                    f"{n_ecrites} dalle(s) enregistrée(s)", level=Qgis.MessageLevel.Success, duration=4
                 )
         except Exception:
             pass
         self._defer_teardown()
         self._source_edit.setText(str(out_path))
+        self._refresh_source_validation()   # setText d'un chemin inchangé n'émet pas textChanged : relire le compte
 
     def _on_tiles_cancel(self) -> None:
         self._defer_teardown()
@@ -731,6 +762,11 @@ class SourcePage(QWidget):
                 iface.messageBar().popWidget(self._scale_msg_item)
             except Exception:
                 pass
+        if self._grid_layer is not None:
+            try:
+                self._grid_layer.selectionChanged.disconnect(self._on_grid_selection_changed)
+            except (TypeError, RuntimeError):
+                pass  # déjà déconnecté / objet C++ détruit
         try:
             from ..map_tools.grid_layer import remove_quadrillage_layer
 
@@ -747,12 +783,12 @@ class SourcePage(QWidget):
         # Ne ré-activer le bouton que hors lecture seule (run en cours).
         if not self._source_edit.isReadOnly():
             self._dalles_btn.setEnabled(True)
-        # Rendre à l'assistant sa place et sa largeur d'avant le choix sur la carte.
+        # Remontrer l'assistant, tel qu'il était, à la fin du choix sur la carte.
         try:
             win = self.window()
-            if getattr(self, "_geometrie_avant_carte", None) is not None:
-                win.setGeometry(self._geometrie_avant_carte)
-                self._geometrie_avant_carte = None
+            if getattr(self, "_masquee_pour_la_carte", False):
+                self._masquee_pour_la_carte = False
+                win.show()
             win.raise_()
             win.activateWindow()
         except Exception:

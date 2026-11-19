@@ -243,7 +243,21 @@ class TestTextes:
         assert "coalesce(attribute($currentfeature, 'n_membres'), 1) > 1" in html
         assert "' fragments, le plus sûr à ', round(attribute($currentfeature, 'conf_max'), 2)" in html
         # apostrophe dans le libellé/modèle : échappée dans l'expression
-        assert "''" not in maptip_html(_cats(), "l'x")  # le nom du modèle n'est pas dans l'expression
+        assert "l''x" not in maptip_html(_cats(), "l'x")  # le nom du modèle n'est pas dans l'expression
+
+    def test_maptip_titre_est_le_libelle_de_la_structure(self):
+        # 2026-11-18 (contrôle par MCP) : l'infobulle montrait l'identifiant « charbonniere »
+        html = maptip_html(_cats(), "m", structure="Charbonnières")
+        assert "<b>Charbonnières</b> — fiabilité" in html
+        assert '"model_pred"' not in html
+        assert "<b>L''x</b>" not in maptip_html(_cats(), "m", structure="L'x")  # texte, pas expression
+
+    def test_maptip_dit_pourquoi_contexte_moderne(self):
+        # 2026-11-18 : un objet grisé « Contexte moderne » ne disait pas pourquoi
+        html = maptip_html(_cats(), "m", structure="Enclos")
+        assert "attribute($currentfeature, 'contexte_moderne')" in html
+        assert "attribute($currentfeature, 'contexte_source')" in html
+        assert "attribute($currentfeature, 'contexte_info')" in html
 
     def test_hint_etape3(self):
         assert hint_etape3({"c": _cats()}) == (

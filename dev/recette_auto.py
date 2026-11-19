@@ -105,7 +105,7 @@ def p61_2(app, w):
     btns = w._source_page._stage_buttons
     vus = [(b._label_text, b._sub_text) for b in btns.values()]
     attendu = [("Dalles IGN à télécharger", "connexion Internet"), ("Nuages LiDAR", "fichiers LAZ ou LAS"),
-               ("MNT existant", "TIF en Lambert-93"), ("Indices de visualisation existants", "TIF en Lambert-93"),
+               ("MNT existant", "TIF projeté en mètres"), ("Indices de visualisation existants", "TIF projeté en mètres"),
                ("Structures à chercher", "facultatif")]
     ok = vus == attendu and w._source_page._dalles_btn.text() == "Choisir sur la carte"
     verdict("61.2", ok, f"frise {vus} ; bouton « {w._source_page._dalles_btn.text()} »")
@@ -245,7 +245,7 @@ def p62_3(app, w, cfg_base):
     sans_image = (it2._a_corriger, it2._sub.text(), it2.toolTip())
     cfg2 = json.loads(json.dumps(cfg_base))
     cfg2["processing"]["products"]["MSTP"] = True
-    cfg2.setdefault("rvt_params", {}).setdefault("mstp", {})["local_scale_min"] = 50   # > max 21 (section rvt_params.mstp)
+    cfg2.setdefault("rvt_params", {}).setdefault("mstp", {})["local_scale_min_m"] = 25.0   # > max 10,5 m (réglages en mètres depuis le 2026-10-31)
     w._apply_config(cfg2)
     w._goto_step(1)
     pump(app, 8)
@@ -297,7 +297,7 @@ def p63_1(app, w, cfg_base):
     rien = {k for k, c in w._indices_page._index_cards.items() if c.property("checked")}
     w._apply_config(cfg_base)
     pump(app)
-    ok = defauts == {"MNT", "SVF", "LD"} and not rien
+    ok = not defauts and not rien
     verdict("63.1", ok, f"défauts d'un profil neuf {sorted(defauts)} ; configuration sans produit : cochés {sorted(rien) or 'aucun'}")
 
 
@@ -307,7 +307,7 @@ def p63_2(app, w):
     w._goto_step(2)
     pump(app)
     tous = labels(page)
-    titres = [t for t in ("Recommandé pour commencer", "Autres indices de visualisation", "Qualité de la donnée") if t in tous]
+    titres = [t for t in ("MNT et qualité de la donnée", "Indices de visualisation") if t in tous]
     rvt = [k for k, c in page._index_cards.items() if c.parent() is not None and page._rvt_card.isAncestorOf(c)]
     page.set_mode("existing_mnt")
     pump(app)
@@ -317,8 +317,8 @@ def p63_2(app, w):
     banniere = page._mode_banner.text()
     page.set_mode("ign_laz")
     pump(app)
-    ok = len(titres) == 3 and len(rvt) == 10 and qual_cachee and "sans objet" in banniere and "indices de visualisation" in banniere
-    verdict("63.2", ok, f"sections {titres} ; autres indices : {len(rvt)} cartes (12 indices moins SVF et LD recommandés) ; qualité masquée en MNT existant {qual_cachee} ; bandeau existing_rvt « {banniere[:90]} »")
+    ok = len(titres) == 2 and len(rvt) == 12 and qual_cachee and "sans objet" in banniere and "indices de visualisation" in banniere
+    verdict("63.2", ok, f"sections {titres} ; indices : {len(rvt)} cartes ; qualité masquée en MNT existant {qual_cachee} ; bandeau existing_rvt « {banniere[:90]} »")
 
 
 @point("63.3")
@@ -811,6 +811,11 @@ def p65_1(app, w, cfg_base, captures):
 
 @point("65.2")
 def p65_2(app, w, captures):
+    # Marge entre dalles par défaut (20 %) : sans elle, la configuration du profil (marge à 0) donne un bandeau orange.
+    origine = json.loads(json.dumps(w._config))
+    cfg = json.loads(json.dumps(origine))
+    cfg.setdefault("processing", {})["tile_overlap"] = 20
+    w._apply_config(cfg)
     w._goto_step(1)
     w._goto_step(4)
     w._launch_page.refresh_preflight(w._config)          # lu AVANT tout événement : l'état « en cours » est fugace ici
@@ -819,6 +824,7 @@ def p65_2(app, w, captures):
     apres = re.sub("<[^>]+>", "", w._launch_page._banner.text())
     pastille = w._launch_page._preflight_pill.text()
     w.grab().save(str(captures / "65-2_pret.png"))
+    w._apply_config(origine)
     ok = pendant == "Vérification de l'environnement…" and statut == "ok" and apres == "Prêt à lancer." and re.search(r"●\s+(\d+)/\1$", pastille) is not None
     verdict("65.2", ok, f"pendant « {pendant} » ; statut {statut} ; bandeau « {apres} » ; pastille « {pastille} »")
 
@@ -1048,7 +1054,7 @@ def p66_4(app, v):
     texte = texte_niveaux_effectifs(v._bilan[0].effectifs)
     widget = v._bilan_box.findChild(bf.BilanFiabiliteWidget)
     rangee = getattr(bf, "_RANGEE", None)
-    ok = texte == "très probable 120 · probable 80 · possible 40 · douteux 12" and rangee == 34 and widget is not None
+    ok = texte == "très probable 120 · probable 80 · possible 40 · douteux 12" and rangee == 24 and widget is not None   # tableau (§ 78)
     verdict("66.4", ok, f"texte sous la barre « {texte} » ; rangée {rangee} px ; widget présent {widget is not None}")
 
 
@@ -1123,9 +1129,11 @@ def p67_3(app, w, r2):
 def p67_4(app, w):
     w._goto_step(5)
     pump(app)
-    w._run_view.revoir_resultats.emit()
+    from qgis.PyQt.QtWidgets import QPushButton
+    absent = not any(b.text() == "Revoir les résultats" for b in w._run_view.findChildren(QPushButton))
+    w._goto_step(6)
     pump(app)
-    verdict("67.4", w._current_step == 6, f"« Revoir les résultats » → étape {w._current_step} (traitement en tête : au traitement réel)")
+    verdict("67.4", absent and w._current_step == 6, f"bouton « Revoir les résultats » absent de l'étape 5 : {absent} ; rail → étape {w._current_step}")
 
 
 # ----------------------------------------------------------------------------------------- § 68, § 70
@@ -1150,7 +1158,7 @@ def p68_6(app, w, recette):
         tab.close()
     finally:
         vt.DEFAULT_CATALOGUE, vt.LOCAL_CATALOGUE = d1, d2
-    ok = texte.startswith("Aucun catalogue n'est installé sur ce poste") and "Aide › Consulter les flux" in texte and actif and cle == "consulter-les-flux" and "injoignable" not in texte
+    ok = texte.startswith("Aucun catalogue n'est installé sur ce poste") and "Aide › Catalogue des flux" in texte and actif and cle == "consulter-les-flux" and "injoignable" not in texte
     verdict("68.6", ok, f"message « {re.sub('<[^>]+>', '', texte)[:90]} » ; Actualiser actif {actif} ; lien → chapitre {cle}")
 
 
@@ -1163,6 +1171,10 @@ def p70_1(app, w):
     w._goto_step(2)
     pump(app)
     compteur = page2._count_label.text()
+    # LD coché à l'étape 2 (rien ne l'est par défaut depuis le 2026-11-12) : l'infobulle du sigle est celle d'un indice lu.
+    cfg_ld = json.loads(json.dumps(w._config))
+    cfg_ld.setdefault("processing", {}).setdefault("products", {})["LD"] = True
+    w._apply_config(cfg_ld)
     w._goto_step(3)
     pump(app)
     page3._on_entity_toggled("cratere", True)
@@ -1175,7 +1187,7 @@ def p70_1(app, w):
     etape5 = [t for t in labels(w._run_view._timeline) if t == "Visualisation du relief"]
     narr = (RACINE / "src" / "app" / "user_narrator.py").read_text(encoding="utf-8")
     flux = w._visu_tab._wall_meta.text() if w._visu_tab else ""
-    sous_titre = [t for t in labels(w._visu_tab) if t.startswith("Produits déjà publiés")] if w._visu_tab else []
+    sous_titre = [t for t in labels(w._visu_tab) if t.startswith("Fonds de carte publics et produits déjà publiés")] if w._visu_tab else []
     stage = [v for v in vars(progress_stages).values() if isinstance(v, dict) and "Visualisation du relief" in v.values()]
     checks = {
         "rail": w._rail._items[1]._label.text() == "Visualisation du relief",
@@ -1237,7 +1249,7 @@ def main(argv=None) -> int:
     for etape in (lambda: p63_1(app, w, cfg_base), lambda: p63_2(app, w), lambda: p63_3(app, w), lambda: p63_4(app, w),
                   lambda: p63_5(app, w), lambda: p63_6(app, w), lambda: p63_7(app, w)):
         etape()
-    p_manuel("63.8", "etape-2-produits", ["Recommandé pour commencer", "ⓘ", "▸ Réglages", "Marge entre dalles", "Comparer les produits"])
+    p_manuel("63.8", "etape-2-produits", ["MNT et qualité de la donnée", "ⓘ", "▸ Réglages", "Marge entre dalles", "Comparer les produits"])
     w._apply_config(cfg_base)
     pump(app)
     for fn in (p64_1, p64_2, p64_3, p64_4, p64_5, p64_6, p64_7, p64_8, p64_9, p64_10):
@@ -1265,7 +1277,7 @@ def main(argv=None) -> int:
     p66_5(app)
     p66_6(app)
     verdict("66.3", None, "journal de fichier : au traitement réel (marge à 0)")
-    p_manuel("66.7", "etape-5-traitement", ["Ajouter au projet QGIS courant", "Relancer maintenant", "très probable 120", "pipeline_log"])
+    p_manuel("66.7", "etape-5-traitement", ["Ajouter au projet QGIS courant", "Relancer maintenant", "est un tableau", "pipeline_log"])
     v.close()
     p67_1(app, w)
     r2 = p67_2(app, w, args.recette)
@@ -1280,7 +1292,7 @@ def main(argv=None) -> int:
         p_manuel("68.7", "consulter-les-flux", ["catalogue", "Afficher dans QGIS", "Tout retirer", "Voir dans QGIS"])
     else:
         for n in ("68.6", "68.7"):
-            verdict(n, None, "onglet « Consulter les flux » masqué (VISUALISATION_TAB_ENABLED faux depuis la 0.18.1)")
+            verdict(n, None, "onglet « Catalogue des flux » masqué (VISUALISATION_TAB_ENABLED faux depuis la 0.18.1)")
     for n in ("68.1", "68.2", "68.3", "68.4", "68.5"):
         verdict(n, None, "traitement réel ou catalogue : à jouer en séance")
     p70_1(app, w)

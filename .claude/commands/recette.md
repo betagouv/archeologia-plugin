@@ -22,8 +22,16 @@ dois checker ? » : répondre par une liste à cocher, rien d'autre.
    `src/pipeline/cv`, que `python run_tests.py -k binaire_a_jour` doit être vert avant une recette de
    détection.
 
+6. **Trier par moyen de preuve** : chaque paragraphe est (a) **automatique** — couvert par
+   `dev/recette_auto.py` (§ 61–70) ou `dev/controle_livrable.py` (affichage d'un dossier de sortie) :
+   le lancer sous les deux QGIS et donner le verdict au lieu de le demander ; ou (b) **en séance** —
+   canevas, traitement réel, carte graphique, regard de l'utilisateur. Un (b) peut être déroulé par
+   le serveur MCP `qgis` si l'utilisateur a cliqué « Run MCP » (CLAUDE.md § QGIS vivant par MCP) :
+   proposer, ne pas imposer ; l'utilisateur garde le contrôle visuel final.
+
 ## Sortie attendue
-Une liste par section, dans l'ordre des numéros, une ligne par paragraphe : numéro, titre court, et
-entre parenthèses le commit ou la date qui l'a introduit. En tête, le point de départ retenu et le
-nombre de paragraphes. En queue, les commits « sans point de recette » s'il y en a. Pas de recette
-jouée à la place de l'utilisateur : la liste s'arrête là.
+Une liste par section, dans l'ordre des numéros, une ligne par paragraphe : numéro, titre court,
+« auto » ou « séance », et entre parenthèses le commit ou la date qui l'a introduit. En tête, le point de départ retenu et le
+nombre de paragraphes. En queue, les commits « sans point de recette » s'il y en a. Les points « auto »
+sont joués (verdicts collés) ; les points « séance » ne sont joués à la place de l'utilisateur que
+s'il le demande.

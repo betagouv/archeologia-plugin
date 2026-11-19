@@ -69,7 +69,9 @@ def main() -> int:
     messages = [f"  {relatif}:{n} : {token}" for n, token in problemes]
     python = str(VENV) if VENV.exists() else sys.executable
     ruff = subprocess.run(
-        [python, "-m", "ruff", "check", str(fichier)],
+        # --force-exclude : un fichier nommé explicitement respecte quand même extend-exclude de ruff.toml
+        # (copie figée de rvt, jamais lintée — 2026-11-18).
+        [python, "-m", "ruff", "check", "--force-exclude", str(fichier)],
         cwd=RACINE, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if ruff.returncode not in (0, None) and ruff.stdout.strip():

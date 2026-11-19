@@ -10,7 +10,7 @@ un runner ONNX léger.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -321,9 +321,13 @@ def greedy_nmm(
     match_threshold: float = 0.5,
     match_metric: str = "IOS",
     class_agnostic: bool = False,
+    tronquees: Optional[Sequence[bool]] = None,
 ) -> List[Detection]:
     """
     Greedy Non-Maximum Merging.
+
+    ``tronquees`` (une valeur par détection) : les boîtes coupées par le bord d'une fenêtre passent APRÈS
+    les boîtes entières, quel que soit leur score (cf. ``merge_sliced_detections``).
     
     Fusionne les détections qui se chevauchent au lieu de simplement les supprimer.
     
@@ -343,6 +347,9 @@ def greedy_nmm(
     boxes = np.array([d.bbox for d in detections])
     scores = np.array([d.score for d in detections])
     class_ids = np.array([d.class_id for d in detections])
+    if tronquees is not None:
+        # Rang = (entière d'abord, puis score) : les scores sont dans [0 ; 1], +1 suffit à séparer les deux groupes.
+        scores = scores + np.where(np.asarray(tronquees, dtype=bool), 0.0, 1.0)
     
     if class_agnostic:
         # Traiter toutes les classes ensemble
@@ -434,9 +441,16 @@ def merge_sliced_detections(
     match_threshold: float = 0.5,
     match_metric: str = "IOS",
     class_agnostic: bool = False,
+    slice_size: Optional[Tuple[int, int]] = None,
 ) -> List[Detection]:
     """
     Fusionne les détections de toutes les slices.
+
+    ``slice_size`` = (largeur, hauteur) des fenêtres. Quand il est donné, une boîte posée sur un bord de sa
+    fenêtre qui n'est pas un bord de l'image est tenue pour **tronquée** : l'objet continue dans la fenêtre
+    voisine. Elle ne l'emporte alors jamais sur une boîte entière du même objet, même plus confiante
+    (2026-11-12 : une charbonnière vue entière à 0,53 était remplacée par sa moitié vue à 0,64) ; seule,
+    elle est gardée. La boîte entière garde son propre score.
     
     Args:
         all_detections: Liste de listes de détections (une par slice)
@@ -452,6 +466,7 @@ def merge_sliced_detections(
     """
     # Décaler toutes les détections vers les coordonnées de l'image originale
     shifted_detections = []
+    tronquees: List[bool] = []
     
     for slice_detections, starting_pixel in zip(all_detections, slice_starting_pixels):
         shift_x, shift_y = starting_pixel
@@ -460,6 +475,8 @@ def merge_sliced_detections(
             clipped = shifted.clip_to_bounds(original_width, original_height)
             if clipped.is_valid():
                 shifted_detections.append(clipped)
+                tronquees.append(slice_size is not None and _sur_un_bord_de_fenetre(
+                    clipped.bbox, shift_x, shift_y, slice_size, original_width, original_height))
     
     if len(shifted_detections) == 0:
         return []
@@ -470,9 +487,24 @@ def merge_sliced_detections(
         match_threshold=match_threshold,
         match_metric=match_metric,
         class_agnostic=class_agnostic,
+        tronquees=tronquees if slice_size is not None else None,
     )
     
     return merged
+
+
+#: Distance (px) sous laquelle un côté de boîte est tenu pour posé sur le bord de sa fenêtre.
+MARGE_BORD_FENETRE_PX = 2.0
+
+
+def _sur_un_bord_de_fenetre(bbox: Sequence[float], depart_x: int, depart_y: int,
+                            taille: Tuple[int, int], largeur: int, hauteur: int) -> bool:
+    """Vrai si un côté de la boîte (coordonnées image) touche un bord de sa fenêtre qui n'est pas un bord de
+    l'image — là où l'objet a pu être coupé."""
+    m = MARGE_BORD_FENETRE_PX
+    fin_x, fin_y = depart_x + taille[0], depart_y + taille[1]
+    return ((depart_x > 0 and bbox[0] - depart_x <= m) or (fin_x < largeur and fin_x - bbox[2] <= m)
+            or (depart_y > 0 and bbox[1] - depart_y <= m) or (fin_y < hauteur and fin_y - bbox[3] <= m))
 
 
 # =============================================================================

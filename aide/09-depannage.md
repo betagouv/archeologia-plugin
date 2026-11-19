@@ -58,7 +58,7 @@ Le rayon d'un indice dépasse la marge entre dalles, ou la taille d'un raster en
 
 ## Une couture entre deux dalles
 
-Sur un indice à grand rayon, une ligne droite visible à la frontière de deux dalles vient d'une marge insuffisante : même cause et même remède que ci-dessus. En MNT existant, des dalles d'un kilomètre jointives reçoivent 50 m de leurs voisines et ne cousent plus ; une couture reste possible entre des rasters plus petits ou non alignés sur le kilomètre, calculés seuls : fournissez alors une mosaïque plutôt que des morceaux.
+Sur un indice à grand rayon, une ligne droite visible à la frontière de deux dalles vient d'une marge insuffisante : même cause et même remède que ci-dessus. En MNT existant, des dalles d'un kilomètre jointives reçoivent de leurs voisines autant de terrain que le plus grand rayon demandé et ne cousent plus ; une couture reste possible entre des rasters plus petits ou non alignés sur le kilomètre, calculés seuls : fournissez alors une mosaïque plutôt que des morceaux.
 
 ## Une dalle est abandonnée
 
@@ -103,7 +103,7 @@ Relancez ensuite dans le même dossier : les produits déjà calculés sont cons
 - Au moins une structure est cochée et couverte par un modèle : la carte **Ce qui sera analysé** le dit.
 - L'indice requis par le modèle est coché à l'étape 2 : le sigle sur la carte de structure est orange sinon.
 - Le seuil de confiance de la structure n'est pas trop haut : baissez-le pour diagnostiquer.
-- Une structure dont toutes les détections sont écartées par le seuil ou l'aire minimale ne produit pas de couche : ce n'est pas une erreur.
+- Une structure dont toutes les détections sont sous le seuil de confiance ne produit pas de couche : ce n'est pas une erreur. Celles sous l'aire minimale restent, dans la catégorie **Écartées**, décochée : cochez-la.
 
 ## Les couches ne se chargent pas dans QGIS
 

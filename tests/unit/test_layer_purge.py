@@ -104,6 +104,26 @@ def test_la_purge_retire_les_groupes_qu_elle_a_vides():
     assert "_retirer_groupes_vides(project)" in purge
 
 
+def test_lancer_un_traitement_ne_ferme_aucune_couche():
+    """Demande du 2026-11-12 : une couche ouverte, issue d'un traitement ou ouverte par l'utilisateur, reste dans
+    le projet quand on lance un traitement. Celles du dossier de sortie sont détachées de leur fichier (Windows
+    le verrouillerait) puis rebranchées à la fin ; les autres ne sont pas touchées."""
+    racine = Path(__file__).resolve().parents[2] / "src" / "ui"
+    chargeur = (racine / "layer_loader.py").read_text(encoding="utf-8")
+    detacher = chargeur[chargeur.index("def detacher_couches_du_dossier("):chargeur.index("def rattacher_couches(")]
+    assert "select_layers_to_purge(" in detacher and 'couche.setDataSource("", couche.name(), couche.providerType())' in detacher
+    assert "removeMapLayer" not in detacher                         # détachée, jamais retirée
+    rattacher = chargeur[chargeur.index("def rattacher_couches("):chargeur.index("def _deferred_zoom(")]
+    assert "couche.setDataSource(source, nom, fournisseur)" in rattacher
+    vue = (racine / "run_view.py").read_text(encoding="utf-8")
+    lancement = vue[vue.index("    def start_run("):vue.index("    def request_cancel(")]
+    assert "detacher_couches_du_dossier(ctx.output_dir, self._logger)" in lancement
+    # La purge ne reste que pour la réorganisation d'un ancien dossier, dont les chemins changent.
+    assert lancement.count("purge_output_dir_layers(") == 1 and "anciens chemins" in lancement
+    fin = vue[vue.index("    def _on_run_enabled("):vue.index("    def _on_load_layers(")]
+    assert "self._rattacher_couches()" in fin
+
+
 def test_purge_par_chemin_pas_par_nom(tmp_path):
     """Les couches sont purgées par leur source sous livrable/, jamais par leur nom : renommer
     une couche (« Parcellaire », « LD · Structures en relief ») ne change rien à la purge."""

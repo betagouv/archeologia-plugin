@@ -27,7 +27,7 @@ EMPREINTES = {
     "blend_func.py": "098451e7923ea955cd5a0ba6a2dfe347be20d06dc0291ebdb4a67599f62ee5be",
     "default.py": "a232912337287fdd2f308d408be2c335ee9da2a8c2e4b37e355a013f7fba8aa0",
     "tile.py": "eee386e989a0318372ce4112b91946dfa489261566d46ee8952dcf0dab8ebef5",
-    "vis.py": "d6ab82d6afc9c9fa691e4525374e530586bbd8249ea4f9f8a3cf57780ffb85d6",
+    "vis.py": "1bb115355e330075d023baf119a51983cbcf34b32adfe13a763be0d85692266a",  # import scipy, 2026-11-18
     "settings/blender_VAT.json": "6eb0259d2a6e243100a3a0d64f08f3f39515487a5cbabd7560af080bb9e90dfd",
     "settings/default_blender_combinations.json": "86399b11f757ef85bfd9a4190330797553cdce697de2bcbe65a291b22cdab366",
     "settings/default_terrains_settings.json": "51aedc90860164584fe06e0af714c5f75dfcf945c4e7e01f80d249c6fda3301e",
@@ -40,12 +40,21 @@ def test_copie_figee():
     assert lues == EMPREINTES
 
 
+def test_pas_d_espace_scipy_deprecie():
+    """2026-11-18 (journal QGIS lu par MCP) : ``scipy.ndimage.morphology`` & co. sont dépréciés et
+    disparaissent en SciPy 2.0 — le moteur intégré ne se chargerait plus."""
+    for p in EMBARQUE.rglob("*.py"):
+        texte = p.read_text(encoding="utf-8")
+        for espace in ("morphology", "filters", "interpolation", "measurements", "fourier"):
+            assert f"scipy.ndimage.{espace}" not in texte, f"{p.name} : scipy.ndimage.{espace}"
+
+
 def test_licence_notice_et_entetes():
     assert "Apache License" in (EMBARQUE / "LICENSE").read_text(encoding="utf-8")
     notice = (EMBARQUE / "NOTICE").read_text(encoding="utf-8")
     for mot in ("ZRC SAZU", "Ljubljana", "Apache", "rvt-qgis", "1.0.1", "import rvt"):
         assert mot in notice, mot
-    for nom in ("blend.py", "default.py", "tile.py"):
+    for nom in ("blend.py", "default.py", "tile.py", "vis.py"):
         assert (EMBARQUE / nom).read_text(encoding="utf-8").startswith("# Modifié pour Archéolog'IA"), nom
 
 

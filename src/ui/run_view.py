@@ -12,6 +12,7 @@ live (« 8/12 dalles ») viennent du canal structuré ``metric``.
 from __future__ import annotations
 
 import html
+import json
 import logging
 import threading
 import time
@@ -46,10 +47,17 @@ from ..app.services.finalize_service import crs_du_traitement, echec_detection
 from ..app.services.nom_analyse import titre_du_livrable
 from ..app.services.rapport_run import NOM_RAPPORT
 from ..app.services.source_modes import mode_info
-from ..pipeline.output_paths import detections_dir, journaux_dir, livrable_dir, projet_qgs_path
-from .widgets.bilan_fiabilite import BilanFiabiliteWidget, legende_niveaux
+from ..pipeline.output_paths import (
+    detections_dir, journaux_dir, livrable_dir, projet_qgs_path, traitement_json_path,
+)
+from .widgets.bilan_fiabilite import BilanFiabiliteWidget
 from .icons import colored_icon
-from .layer_loader import load_result_layers, purge_output_dir_layers
+from .layer_loader import (
+    detacher_couches_du_dossier,
+    load_result_layers,
+    purge_output_dir_layers,
+    rattacher_couches,
+)
 from .log_bridge import QtLogEmitter, QtLogHandler
 from qgis.PyQt.QtWidgets import QMessageBox
 
@@ -288,7 +296,6 @@ class RunView(QWidget):
 
     run_started = pyqtSignal()
     run_finished = pyqtSignal()
-    revoir_resultats = pyqtSignal()   # « Revoir les résultats » → l'étape 6 de l'assistant
 
     def __init__(self, config_ref: Optional[dict] = None, parent=None, iface=None):
         super().__init__(parent)
@@ -414,10 +421,22 @@ class RunView(QWidget):
         fil.addWidget(self._fil_gauche, 1)
         fil.addWidget(self._activity_dot, 0, Qt.AlignmentFlag.AlignVCenter)
         fil.addWidget(self._fil_droite, 0, Qt.AlignmentFlag.AlignVCenter)
+        # « Annuler » à côté du chrono, là où on regarde, et seulement pendant le traitement (2026-11-12).
+        self._cancel_btn = QPushButton("Annuler")
+        self._cancel_btn.setObjectName("RunCancelBtn")
+        self._cancel_btn.setEnabled(False)
+        self._cancel_btn.setVisible(False)
+        self._cancel_btn.clicked.connect(self.request_cancel)
+        fil.addWidget(self._cancel_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         haut.addLayout(fil)
 
         self._timeline = _Timeline()
         haut.addWidget(self._timeline)
+        # Sous la frise : l'image en cours, tenue à jour, sans chercher la dernière ligne du journal.
+        self._sous_frise = QLabel("")
+        self._sous_frise.setObjectName("RunSousFrise")
+        self._sous_frise.setVisible(False)
+        haut.addWidget(self._sous_frise)
 
         # ── Fin de run : « Par où commencer » (barres du bilan) + les actions qui
         # vont avec : ouvrir le projet QGIS (au clic seulement), le dossier, le rapport.
@@ -451,6 +470,17 @@ class RunView(QWidget):
         )
         self._open_project_btn.setEnabled(False)
         self._open_project_btn.clicked.connect(self._ouvrir_projet_qgis)
+        # À côté (2026-11-12, demande de l'utilisateur) : les données de l'IGN qui expliquent les détections
+        # grisées ou informées — bâtiments, zones d'habitation, eau… — posées sur le relief.
+        self._contexte_btn = QPushButton("Ajouter le contexte moderne")
+        self._contexte_btn.setObjectName("SecondButton")
+        self._contexte_btn.setToolTip(
+            "Ajoute au projet QGIS les données qui ont servi à griser ou informer les détections (bâtiments, "
+            "eau, cours d'eau, zones d'habitation, ronds-points), lues dans le dossier du "
+            "traitement, visibles à partir du 1:25 000. Sans ce fichier (traitement sans détection ou plus "
+            "ancien), les données du contexte moderne sont lues en direct, rangées par famille")
+        self._contexte_btn.setEnabled(False)
+        self._contexte_btn.clicked.connect(self._ajouter_contexte_moderne)
         # Le dossier de sortie, à côté du projet (demande utilisateur 2026-10-08).
         # Icônes SVG du thème (teintées, nettes) plutôt que des émojis couleur au
         # rendu hétérogène ; iconSize = taille de rendu (14 px), sinon upscale
@@ -460,6 +490,9 @@ class RunView(QWidget):
         self._open_dir_btn.setIcon(colored_icon("folder-open", "#2c2c2c", 14, dpr=dpr))
         self._open_dir_btn.setIconSize(QSize(14, 14))
         self._open_dir_btn.setToolTip("Le dossier de sortie, dans l'explorateur de fichiers")
+        self._open_dir_btn.setObjectName("RunLien")
+        self._open_dir_btn.setFlat(True)
+        self._open_dir_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._open_dir_btn.setEnabled(False)
         self._open_dir_btn.clicked.connect(self._open_output_dir)
         # Rapport de traitement (rapport.html, 2026-10-08) : actif à la fin du run
@@ -469,20 +502,24 @@ class RunView(QWidget):
         self._open_report_btn.setIcon(colored_icon("file-text", "#2c2c2c", 14, dpr=dpr))
         self._open_report_btn.setIconSize(QSize(14, 14))
         self._open_report_btn.setToolTip("Le rapport du traitement, dans le navigateur (livrable/rapport.html)")
+        self._open_report_btn.setObjectName("RunLien")
+        self._open_report_btn.setFlat(True)
+        self._open_report_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._open_report_btn.setEnabled(False)
         self._open_report_btn.clicked.connect(self._open_report)
-        self._revoir_btn = QPushButton("Revoir les résultats")
-        self._revoir_btn.setObjectName("GhostButton")
-        self._revoir_btn.setToolTip("Tous les traitements lancés depuis ce poste, pour y revenir")
-        self._revoir_btn.clicked.connect(self.revoir_resultats)
-        self._bilan_legende = QLabel("")
-        self._bilan_legende.setObjectName("RunHeaderSub")
-        self._bilan_legende.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        # Deux gestes qui se suivent à gauche, deux liens discrets à droite (2026-11-12). La légende a
+        # disparu : l'en-tête du tableau du bilan en tient lieu.
         actions_fin.addWidget(self._open_project_btn)
+        actions_fin.addWidget(self._contexte_btn)
+        actions_fin.addStretch(1)
         actions_fin.addWidget(self._open_dir_btn)
         actions_fin.addWidget(self._open_report_btn)
-        actions_fin.addWidget(self._revoir_btn)
-        actions_fin.addWidget(self._bilan_legende, 1)
+        # Ce que le croisement du contexte moderne a fait, ou pourquoi il n'a pas pu se faire.
+        self._contexte_etat = QLabel("")
+        self._contexte_etat.setObjectName("RunContexteEtat")
+        self._contexte_etat.setWordWrap(True)
+        self._contexte_etat.setVisible(False)
+        bl.addWidget(self._contexte_etat)
         bl.addLayout(actions_fin)
         self._bilan_box.setVisible(False)
         haut.addWidget(self._bilan_box)
@@ -511,10 +548,31 @@ class RunView(QWidget):
         clear_btn = QPushButton("Effacer")
         clear_btn.setObjectName("GhostButton")
         clear_btn.clicked.connect(self._clear_journal)
+        # Replié à la fin d'un traitement sans avertissement ni erreur (2026-11-12) : une ligne dit ce
+        # qu'il contient, un clic le rouvre. Pendant le traitement il reste la vue principale.
+        self._journal_resume = QLabel("")
+        self._journal_resume.setObjectName("RunHeaderSub")
+        self._journal_resume.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._journal_resume.setMinimumWidth(0)       # toujours là : vide, il tient lieu de ressort
+        self._journal_bascule = QPushButton("▾ Masquer")
+        self._journal_bascule.setObjectName("RunLien")
+        self._journal_bascule.setFlat(True)
+        self._journal_bascule.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._journal_bascule.setVisible(False)
+        self._journal_bascule.clicked.connect(lambda: self._replier_journal(self._journal.isVisible()))
+        self._open_log_btn = QPushButton("Journal complet (fichier)")
+        self._open_log_btn.setObjectName("RunLien")
+        self._open_log_btn.setFlat(True)
+        self._open_log_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._open_log_btn.setEnabled(False)
+        self._open_log_btn.clicked.connect(self._open_log)
+        self._copy_btn, self._clear_btn = copy_btn, clear_btn
         jhead.addWidget(jtitle)
         jhead.addWidget(self._warn_chip)
         jhead.addWidget(self._err_chip)
-        jhead.addStretch(1)
+        jhead.addWidget(self._journal_resume, 1)
+        jhead.addWidget(self._journal_bascule)
+        jhead.addWidget(self._open_log_btn)
         jhead.addWidget(copy_btn)
         jhead.addWidget(clear_btn)
         haut.addLayout(jhead)
@@ -534,24 +592,10 @@ class RunView(QWidget):
         self._journal.setMinimumHeight(140)
         self._journal.setPlaceholderText("Le journal s'écrira ici, ligne par ligne, dès le lancement.")
         haut.addWidget(self._journal, 1)
+        haut.addStretch(0)       # journal replié : le reste de la vue reste calé en haut
         # Largeur minimale du contenu reportée sur la zone : rien de rogné à droite.
         zone.setMinimumWidth(contenu.minimumSizeHint().width() + zone.verticalScrollBar().sizeHint().width())
 
-        actions = QHBoxLayout()
-        self._open_log_btn = QPushButton("Journal complet (fichier)")
-        self._open_log_btn.setObjectName("GhostButton")
-        self._open_log_btn.setIcon(colored_icon("file-text", "#2c2c2c", 14, dpr=dpr))
-        self._open_log_btn.setIconSize(QSize(14, 14))
-        self._open_log_btn.setEnabled(False)
-        self._open_log_btn.clicked.connect(self._open_log)
-        actions.addWidget(self._open_log_btn)
-        actions.addStretch(1)
-        self._cancel_btn = QPushButton("Annuler")
-        self._cancel_btn.setObjectName("RunCancelBtn")
-        self._cancel_btn.setEnabled(False)
-        self._cancel_btn.clicked.connect(self.request_cancel)
-        actions.addWidget(self._cancel_btn)
-        root.addLayout(actions)
 
     # ------------------------------------------------------------------
     # API
@@ -667,7 +711,10 @@ class RunView(QWidget):
                 for e in erreurs:
                     self._append_log("ERROR", f"   • {e}")
                 return
-        purge_output_dir_layers(ctx.output_dir, self._logger)
+        # Les couches du dossier de sortie restent dans le projet : détachées de leur fichier le temps du
+        # calcul (sinon Windows le verrouille), rebranchées à la fin (_on_run_enabled).
+        self._rattacher_couches()
+        self._couches_detachees = detacher_couches_du_dossier(ctx.output_dir, self._logger)
         # Registre des runs connus (profil QGIS) : la fiche de classe y lira vos
         # verdicts (fiabilité observée, 2026-10-08). Jamais bloquant.
         try:
@@ -680,6 +727,11 @@ class RunView(QWidget):
         self._run_lance_le = time.time()
         self._cancel_event.clear()
         self._cancel_btn.setEnabled(True)
+        self._cancel_btn.setVisible(True)
+        self._replier_journal(False)
+        self._journal_bascule.setVisible(False)
+        self._sous_frise.setText("")
+        self._sous_frise.setVisible(False)
         # Le dossier de sortie (et le log) existent dès le démarrage du run.
         self._open_dir_btn.setEnabled(True)
         self._open_log_btn.setEnabled(True)
@@ -746,6 +798,7 @@ class RunView(QWidget):
         self._timeline.reset()  # états + chronos + compteurs (garde les sous-libellés)
         self._last_progress = 0
         self._bilan = []
+        self._contexte_btn.setEnabled(False)
         self._couches_a_charger = None
         self._bilan_box.setVisible(False)
         self._afficher_bilan()
@@ -856,6 +909,9 @@ class RunView(QWidget):
 
     def _update_transient_log(self, group: str, level: str, msg: str) -> None:
         cat = _level_category(level)
+        if self._running:
+            self._sous_frise.setText(msg.strip().lstrip("↳").strip())
+            self._sous_frise.setVisible(True)
         same = group == self._transient_group
         if same and self._transient_entry is not None:
             self._transient_entry[1] = msg
@@ -1030,21 +1086,29 @@ class RunView(QWidget):
             total = sum(int(getattr(ligne, "total", 0) or 0) for ligne in self._bilan)
             lay.addWidget(BilanFiabiliteWidget(self._bilan))
             self._bilan_titre.setText("Par où commencer")
-            self._bilan_sous.setText(f"{total:,}".replace(",", " ") + " détections, du plus sûr au plus douteux")
-            self._bilan_legende.setText(" · ".join(lab.lower() for _c, lab in legende_niveaux(self._bilan)))
-            self._bilan_legende.setToolTip("Survolez une barre pour les effectifs par niveau ; même bilan dans le journal et le rapport.")
+            ecartees = sum(int(getattr(ligne, "n_ecartees", 0) or 0) for ligne in self._bilan)
+            nb = lambda n: f"{n:,}".replace(",", " ")   # noqa: E731
+            self._bilan_sous.setText(
+                f"{nb(total)} détections" + (f" · {nb(total - ecartees)} à examiner, {nb(ecartees)} écartées"
+                                              if ecartees else ", du plus sûr au plus douteux"))
         else:
             cv = (self._config or {}).get("computer_vision") or {}
             self._bilan_titre.setText("Résultats")
             self._bilan_sous.setText("aucune détection avec fiabilité mesurée" if cv.get("enabled") else "")
-            self._bilan_legende.setText("")
-            self._bilan_legende.setToolTip("")
+
+    def _rattacher_couches(self) -> None:
+        """Rebranche les couches mises en attente au lancement ; sans effet s'il n'y en a pas."""
+        detachees, self._couches_detachees = getattr(self, "_couches_detachees", None), []
+        if detachees:
+            rattacher_couches(detachees, self._logger)
 
     def _on_run_enabled(self, enabled: bool) -> None:
         if not enabled:
             return
         self._running = False
         self._cancel_btn.setEnabled(False)
+        self._cancel_btn.setVisible(False)
+        self._sous_frise.setVisible(False)
         self._dot_anim.stop()
         self._activity_dot.setVisible(False)
         # Fige le chrono de l'étape active courante puis arrête le rafraîchissement.
@@ -1058,12 +1122,21 @@ class RunView(QWidget):
             self._timeline.mark_all_done()
         # Synthèse dans le fil (avant le clear de _cancel_event, qui porte « annulé »),
         # puis le cadre de fin : bilan, projet QGIS au clic, rapport.
+        self._rattacher_couches()
         self._show_end_banner()
         self._cancel_event.clear()
         out_dir = self._output_dir()
         self._open_report_btn.setEnabled(bool(out_dir and (livrable_dir(out_dir) / NOM_RAPPORT).is_file()))
         self._open_project_btn.setEnabled(bool(self._couches_a_charger))
         self._afficher_bilan()
+        # Actif à la fin de tout traitement, même sans détection (2026-11-12) : le contexte moderne se
+        # regarde aussi sur le relief seul. Il ne lui faut que la fenêtre de QGIS.
+        self._contexte_btn.setEnabled(self._iface is not None)
+        self._afficher_etat_contexte()
+        # Sans avertissement ni erreur, le journal a fini son travail : replié, un clic le rouvre.
+        self._journal_bascule.setVisible(True)
+        self._replier_journal(not self._level_counts.get("warn") and not self._level_counts.get("err")
+                              and bool(self._bilan))
         self._bilan_box.setVisible(True)
         self.run_finished.emit()
 
@@ -1116,6 +1189,113 @@ class RunView(QWidget):
                 entity_labels, derived_slugs, min_conf_by_slug, cov_thr,
             ),
         )
+
+    def _zone_etudiee(self):
+        """``(rectangle, système)`` de ce que le traitement a couvert — l'emprise de ses mosaïques —, ou
+        ``None`` si elle n'est pas connue (toutes les données sont alors ajoutées)."""
+        try:
+            from qgis.core import QgsRasterLayer
+
+            out_dir = self._output_dir()
+            if not out_dir:
+                return None
+            zone = scr = None
+            for vrt in sorted(Path(livrable_dir(out_dir)).glob("indices/*/tif/index_*.vrt")):
+                couche = QgsRasterLayer(str(vrt), "zone", "gdal")
+                if not couche.isValid() or couche.extent().isEmpty():
+                    continue
+                if zone is None:
+                    zone, scr = couche.extent(), couche.crs()
+                elif couche.crs() == scr:
+                    zone.combineExtentWith(couche.extent())
+            return (zone, scr) if zone is not None else None
+        except Exception:  # noqa: BLE001 — zone inconnue : on ajoute tout, comme avant
+            return None
+
+    def _contexte_local(self) -> Optional[Path]:
+        """Le fichier des objets qui ont servi au croisement (``livrable/contexte/contexte_moderne.gpkg``),
+        ou ``None`` : traitement antérieur au 2026-11-13, sans détection, ou croisement non fait."""
+        from ..app.services.contexte_gpkg import chemin_contexte
+
+        out_dir = self._output_dir()
+        chemin = chemin_contexte(detections_dir(out_dir)) if out_dir else None
+        return chemin if chemin is not None and chemin.is_file() else None
+
+    def _ajouter_contexte_moderne(self) -> None:
+        """Ajoute au projet les données vectorielles du contexte moderne, par le même chemin que la page
+        « Fonds de carte » du Catalogue des flux (groupe « Contexte moderne »). Lues dans le fichier du
+        traitement quand il existe (aucune attente, 2026-11-13) ; sinon en direct, comme avant."""
+        from ..app.services import fonds_publics as fp
+        from .fonds_page import FondsPage
+
+        local = self._contexte_local()
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            # ponytail: une page du catalogue jamais montrée, pour réutiliser son ajout tel quel ;
+            # à extraire en fonction si un troisième appelant arrive.
+            page = FondsPage(Path(__file__).resolve().parents[2], iface=self._iface)
+            if local is not None:
+                ajoutes, deja = page.ajouter_contexte_moderne(gpkg=local)
+            else:
+                ajoutes, deja = page.ajouter_contexte_moderne(zone=self._zone_etudiee())
+            absentes = list(page.absentes)
+            indisponibles = list(page.indisponibles)
+            page.deleteLater()
+        finally:
+            QApplication.restoreOverrideCursor()
+        if ajoutes and local is not None:
+            message = (f"Contexte moderne : {ajoutes} donnée{'s' if ajoutes > 1 else ''} "
+                       f"ajoutée{'s' if ajoutes > 1 else ''} au projet dans le groupe « {fp.GROUPE_CONTEXTE} », "
+                       "lues dans le dossier du traitement (livrable/contexte) : celles qui ont servi à griser "
+                       "ou informer les détections. Elles se dessinent à partir du 1:25 000 : zoomez sur une "
+                       "détection. Les autres données (routes, réseaux, risques…) s'ajoutent depuis le "
+                       "Catalogue des flux.")
+        elif ajoutes:
+            message = (f"Contexte moderne : {ajoutes} donnée{'s' if ajoutes > 1 else ''} "
+                       f"ajoutée{'s' if ajoutes > 1 else ''} au projet, rangées par famille dans le groupe "
+                       f"« {fp.GROUPE_CONTEXTE} ». Celles qui sont décochées se cochent dans l'arbre des couches. "
+                       "Elles se dessinent à partir du 1:25 000 : zoomez sur une détection.")
+            if absentes:
+                message += (f" Sans objet dans la zone étudiée, donc pas ajoutée{'s' if len(absentes) > 1 else ''} : "
+                            + ", ".join(absentes) + ".")
+        elif deja:
+            message = "Contexte moderne : ces données sont déjà dans le projet."
+        else:
+            message = "Contexte moderne : aucune donnée n'a pu être ajoutée (connexion à internet ?)."
+        if indisponibles and (ajoutes or deja):
+            # Service muet pour certaines seulement (2026-11-18) : les nommer plutôt que les taire.
+            message += (f" Indisponible{'s' if len(indisponibles) > 1 else ''} (service sans réponse) : "
+                        + ", ".join(indisponibles) + ".")
+        self._logger.log(25, message)
+
+    def _afficher_etat_contexte(self) -> None:
+        """La ligne sous le tableau du bilan : ce que le croisement a fait, lu dans la trace du traitement."""
+        from ..app.services.contexte_moderne import ligne_etat
+
+        texte = ""
+        try:
+            out_dir = self._output_dir()
+            if out_dir:
+                trace = json.loads(traitement_json_path(out_dir).read_text(encoding="utf-8"))
+                texte = ligne_etat(trace.get("contexte_moderne"))
+        except (OSError, ValueError, AttributeError):
+            texte = ""
+        self._contexte_etat.setText(texte)
+        self._contexte_etat.setVisible(bool(texte))
+
+    def _replier_journal(self, replier: bool) -> None:
+        """Replie le journal en une ligne (nombre de lignes, dernière phrase) ou le rouvre."""
+        self._journal.setVisible(not replier)
+        self._copy_btn.setVisible(not replier)
+        self._clear_btn.setVisible(not replier)
+        self._journal_bascule.setText("▸ Afficher" if replier else "▾ Masquer")
+        if replier:
+            n = len(self._log_entries)
+            derniere = str(self._log_entries[-1][1]).strip() if self._log_entries else ""
+            self._journal_resume.setText(
+                f"{n} ligne{'s' if n > 1 else ''}" + (f" · dernière : « {derniere} »" if derniere else ""))
+        if not replier:
+            self._journal_resume.setText("")
 
     def _ouvrir_projet_qgis(self) -> None:
         """Charge les couches du run dans le projet QGIS courant (thread principal,

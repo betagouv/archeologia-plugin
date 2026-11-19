@@ -75,8 +75,9 @@ def test_couches_d_un_geopackage(tmp_path):
 
 
 def test_filtrage_par_aire_dans_un_geopackage(tmp_path):
-    """Les petites entités partent, une entité taguée par une brique de synthèse (cluster_id) reste, la couche
-    exemptée n'est pas lue, un GeoPackage entièrement vidé est supprimé."""
+    """Les petites entités sont écartées (``ecart_taille``, 2026-11-19 : supprimées avant), une entité taguée par
+    une brique de synthèse (cluster_id) ne l'est pas, la couche exemptée n'est pas lue, un GeoPackage dont tout
+    est écarté reste."""
     p = _gpkg(tmp_path, {
         "four": ([box(0, 0, 2, 2), box(0, 0, 20, 20), box(10, 10, 12, 12)],
                  {"confidence": [0.9, 0.8, 0.7], "cluster_id": [None, None, "c1"]}),
@@ -84,13 +85,17 @@ def test_filtrage_par_aire_dans_un_geopackage(tmp_path):
     })
     cs._filter_gpkg_by_min_area([str(p)], min_area_m2=100.0, exempt_layers=frozenset({"zone_de_fours"}))
     fours = gpd.read_file(p, layer="four")
-    assert sorted(fours.geometry.area) == [4.0, 400.0]               # 4 m² gardée par son cluster_id
-    assert len(gpd.read_file(p, layer="zone_de_fours")) == 1          # exemptée (9 m² < 100)
+    assert sorted(fours.geometry.area) == [4.0, 4.0, 400.0]          # rien n'est supprimé
+    ecartees = fours[fours["ecart_taille"] != ""]
+    assert len(ecartees) == 1 and not isinstance(ecartees.iloc[0]["cluster_id"], str)   # 4 m² taguée : pas écartée
+    assert ecartees.iloc[0]["ecart_taille"] == "surface de 4 m², sous le minimum de 100 m²"
+    zones = gpd.read_file(p, layer="zone_de_fours")
+    assert len(zones) == 1 and "ecart_taille" not in zones.columns   # exemptée (9 m² < 100)
 
     (tmp_path / "v").mkdir()
-    vide = _gpkg(tmp_path / "v", {"four": ([box(0, 0, 2, 2)], {"confidence": [0.9]})})
-    cs._filter_gpkg_by_min_area([str(vide)], min_area_m2=100.0)
-    assert not vide.exists()
+    seule = _gpkg(tmp_path / "v", {"four": ([box(0, 0, 2, 2)], {"confidence": [0.9]})})
+    cs._filter_gpkg_by_min_area([str(seule)], min_area_m2=100.0)
+    assert seule.exists() and gpd.read_file(seule, layer="four").iloc[0]["ecart_taille"]
 
 
 def test_suppression_d_un_jeu_shapefile(tmp_path):

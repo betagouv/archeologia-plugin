@@ -35,6 +35,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -48,7 +49,9 @@ from ..app.services.visu_catalogue import (
     filter_departments,
     load_catalogue,
     merge_catalogues,
+    relief_par_zone_installe,
 )
+from .fonds_page import FondsPage
 from .widgets.indice_card import (
     CARD_W,
     STATE_IDLE,
@@ -57,6 +60,7 @@ from .widgets.indice_card import (
     IndiceCard,
 )
 
+PAGE_FONDS, PAGE_RELIEF = 0, 1
 RAIL_W = 252
 GRID_HSPACING = 14
 GRID_VSPACING = 16
@@ -72,7 +76,7 @@ LOCAL_CATALOGUE = Path("data") / "local_catalogue" / "catalogue.json"
 #: pas une panne, la page le dit et renvoie au manuel (N-04, 2026-10-25).
 SANS_CATALOGUE = (
     "Aucun catalogue n'est installé sur ce poste : cette page sert aux flux publiés par votre organisation.<br>"
-    "<a href='manuel:consulter-les-flux'>Aide › Consulter les flux</a>"
+    "<a href='manuel:consulter-les-flux'>Aide › Catalogue des flux</a>"
 )
 
 
@@ -118,10 +122,15 @@ class VisualisationTab(QWidget):
 
     #: Nombre de couches ouvertes par l'onglet (pour le compteur d'onglet).
     layer_count_changed = pyqtSignal(int)
+    #: ``(corps, titre)`` d'une fiche de fond de carte à ouvrir : l'assistant la pose dans sa fenêtre.
+    fiche_fond_demandee = pyqtSignal(object, str)
 
     def __init__(self, plugin_root: Path, iface=None, parent=None):
         super().__init__(parent)
         self._plugin_root = Path(plugin_root)
+        # Sans catalogue de flux installé (tout poste hors du nôtre : le ZIP n'en porte aucun), la page
+        # « Relief par zone » n'existe pas : ni bouton, ni accès (2026-11-18).
+        self._relief_installe = relief_par_zone_installe(self._plugin_root)
         self._iface = iface
         self._catalogue: Catalogue = Catalogue()
         self._erreur_catalogue: Optional[str] = None
@@ -144,11 +153,24 @@ class VisualisationTab(QWidget):
         root.setSpacing(0)
         root.addWidget(self._build_header())
         root.addWidget(self._build_liseret())
-        root.addWidget(self._build_body(), 1)
+        root.addWidget(self._build_pages_bar())
+        # Deux pages : les fonds publics (les mêmes partout en France, rangés par époque) et nos
+        # indices (rangés par zone). Un fond n'est pas une zone : il ne va ni dans le rail ni sous
+        # chaque département (décision du 2026-11-11).
+        self._fonds_page = FondsPage(self._plugin_root, iface=self._iface)
+        self._fonds_page.couches_changees.connect(self._sync_footer)
+        self._fonds_page.fiche_demandee.connect(
+            lambda fond_id: self.fiche_fond_demandee.emit(*self._fonds_page.corps_fiche(fond_id)))
+        self._pages = QStackedWidget()
+        self._pages.addWidget(self._fonds_page)
+        self._pages.addWidget(self._build_body())
+        root.addWidget(self._pages, 1)
         root.addWidget(self._build_footer())
 
         self._connect_project()
         self.reload_catalogue()
+        # Sans flux privés (cas de tout poste hors de l'organisation), les fonds sont tout l'onglet.
+        self.montrer_page(PAGE_RELIEF if self._catalogue.covered else PAGE_FONDS)
 
     # ------------------------------------------------------------------ UI
 
@@ -162,9 +184,9 @@ class VisualisationTab(QWidget):
         texts = QVBoxLayout()
         texts.setContentsMargins(0, 0, 0, 0)
         texts.setSpacing(1)
-        title = QLabel("Consulter les flux")
+        title = QLabel("Catalogue des flux")
         title.setObjectName("VisuTitle")
-        sub = QLabel("Produits déjà publiés, à afficher dans QGIS sans traitement")
+        sub = QLabel("Fonds de carte publics et produits déjà publiés, à afficher dans QGIS sans traitement")
         sub.setObjectName("VisuSubtitle")
         texts.addWidget(title)
         texts.addWidget(sub)
@@ -180,6 +202,42 @@ class VisualisationTab(QWidget):
         self._refresh_btn.clicked.connect(self.reload_catalogue)
         lay.addWidget(self._refresh_btn)
         return bar
+
+    def showEvent(self, event) -> None:  # noqa: N802 (signature Qt)
+        """Le pied de page se lit dans le projet à chaque affichage : des fonds ajoutés lors d'une
+        ouverture précédente de la fenêtre (ou d'un projet rouvert) doivent rendre « Tout retirer »."""
+        super().showEvent(event)
+        self._sync_footer()
+
+    def _build_pages_bar(self) -> QWidget:
+        bar = QFrame()
+        bar.setObjectName("VisuPagesBar")
+        lay = QHBoxLayout(bar)
+        lay.setContentsMargins(16, 6, 16, 6)
+        lay.setSpacing(6)
+        self._page_btns: Dict[int, QPushButton] = {}
+        for index, label in ((PAGE_FONDS, "Fonds de carte"), (PAGE_RELIEF, "Relief par zone")):
+            b = QPushButton(label)
+            b.setObjectName("VisuFamilyBtn")
+            b.setCheckable(True)
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            b.clicked.connect(lambda _checked, i=index: self.montrer_page(i))
+            self._page_btns[index] = b
+            lay.addWidget(b)
+        lay.addStretch(1)
+        # Une seule page (pas de catalogue de flux) : pas de barre de pages du tout.
+        bar.setVisible(self._relief_installe)
+        return bar
+
+    def montrer_page(self, index: int) -> None:
+        if index == PAGE_RELIEF and not self._relief_installe:
+            index = PAGE_FONDS
+        self._pages.setCurrentIndex(index)
+        for i, b in self._page_btns.items():
+            b.setChecked(i == index)
+        # « Actualiser le catalogue » ne concerne que nos flux par zone.
+        self._refresh_btn.setVisible(index == PAGE_RELIEF)
+        self._cat_stamp.setVisible(index == PAGE_RELIEF)
 
     def _build_liseret(self) -> QWidget:
         self._liseret = QProgressBar()
@@ -754,6 +812,8 @@ class VisualisationTab(QWidget):
         ids = list(self._layers)
         if ids:
             QgsProject.instance().removeMapLayers(ids)
+        self._fonds_page.retirer_tout()
+        self._sync_footer()
         if self._iface is not None:
             self._iface.mapCanvas().refresh()
 
@@ -854,20 +914,30 @@ class VisualisationTab(QWidget):
                 touched = True
         if touched:
             self._sync_cards()
-            self._sync_footer()
+        self._sync_footer()                # un fond retiré à la main ne passe pas par _layers
 
     def _sync_cards(self) -> None:
         for key, card in self._cards.items():
             card.set_state(STATE_LOADED if self._layer_id_for(key) else STATE_IDLE)
 
     def _sync_footer(self) -> None:
-        n = len(self._layers)
+        relief = len(self._layers)
+        try:
+            fonds = len(self._fonds_page.presents())
+        except Exception:                        # noqa: BLE001 — hors QGIS (aperçu isolé)
+            fonds = 0
+        n = relief + fonds
         if n == 0:
             self._footer_state.setText("Aucune couche ouverte dans QGIS")
         else:
-            pluriel = "s" if n > 1 else ""
-            self._footer_state.setText(
-                f"{n} couche{pluriel} ouverte{pluriel} dans QGIS · {self._source_mode()}")
+            parts = []
+            if relief:
+                pluriel = "s" if relief > 1 else ""
+                parts.append(f"{relief} couche{pluriel} de relief · {self._source_mode()}")
+            if fonds:
+                pluriel = "s" if fonds > 1 else ""
+                parts.append(f"{fonds} fond{pluriel} de carte")
+            self._footer_state.setText("Dans QGIS : " + ", ".join(parts))
         self._clear_btn.setVisible(n > 0)
         self.layer_count_changed.emit(n)
 

@@ -15,7 +15,7 @@ ignoré : pas de bilan, jamais d'exception.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -37,21 +37,27 @@ def _nb(n: int) -> str:
     return f"{n:,}".replace(",", " ")
 
 
-def texte_niveaux_effectifs(effectifs: Mapping[str, int]) -> str:
-    """« très probable 120 · probable 80 · possible 40 · douteux 12 » : les effectifs par
-    niveau en toutes lettres, du plus sûr au plus douteux, au masculin singulier de la
-    légende — le bilan se lit sans la couleur, à l'écran comme dans le rapport (lot 6)."""
+#: Libellé des détections grisées par le contexte moderne, dans le bilan.
+LIBELLE_ECARTEES = "écartées"
+
+
+def texte_niveaux_effectifs(effectifs: Mapping[str, int], ecartees: int = 0) -> str:
+    """« très probable 120 · probable 80 · possible 40 · douteux 12 · contexte moderne 9 » : les
+    effectifs par niveau en toutes lettres, du plus sûr au plus douteux, au masculin singulier de la
+    légende — le bilan se lit sans la couleur, à l'écran comme dans le rapport (lot 6). ``ecartees`` :
+    les détections grisées par le contexte moderne, dites à part et à la fin."""
     from .vocabulaire import niveau, nombre   # différé : vocabulaire lit le catalogue des images
 
-    return " · ".join(
-        f"{niveau(c)} {nombre(int(effectifs.get(c, 0)), 0)}"
-        for c in NIVEAUX_DU_PLUS_SUR if int(effectifs.get(c, 0) or 0) > 0
-    )
+    morceaux = [f"{niveau(c)} {nombre(int(effectifs.get(c, 0)), 0)}"
+                for c in NIVEAUX_DU_PLUS_SUR if int(effectifs.get(c, 0) or 0) > 0]
+    if ecartees > 0:
+        morceaux.append(f"{LIBELLE_ECARTEES} {nombre(int(ecartees), 0)}")
+    return " · ".join(morceaux)
 
 
 def texte_niveaux(ligne: "LigneBilan") -> str:
     """Le texte sous la barre d'une ligne du bilan (cf. ``texte_niveaux_effectifs``)."""
-    return texte_niveaux_effectifs(ligne.effectifs)
+    return texte_niveaux_effectifs(dict(ligne.par_niveau()), ligne.n_ecartees)
 
 
 @dataclass(frozen=True)
@@ -63,14 +69,23 @@ class LigneBilan:
     modele: str
     categories: Tuple[Categorie, ...]      # niveaux effectifs du run (seuils croissants)
     effectifs: Dict[str, int]              # catégorie → nombre de détections écrites
+    #: catégorie → détections grisées par le contexte moderne (comptées aussi dans ``effectifs``)
+    ecartes: Dict[str, int] = field(default_factory=dict)
 
     @property
     def total(self) -> int:
         return sum(self.effectifs.values())
 
+    @property
+    def n_ecartees(self) -> int:
+        """Détections grisées par le contexte moderne, tous niveaux confondus."""
+        return sum(min(int(n), self.effectifs.get(c, 0)) for c, n in self.ecartes.items())
+
     def par_niveau(self) -> List[Tuple[str, int]]:
-        """``[(catégorie, n), …]`` du plus sûr au plus douteux, niveaux présents seulement."""
-        return [(c, self.effectifs.get(c, 0)) for c in NIVEAUX_DU_PLUS_SUR if c in self.effectifs]
+        """``[(catégorie, n), …]`` du plus sûr au plus douteux, niveaux présents seulement — **hors**
+        détections grisées par le contexte moderne, que la légende de la couche range à part."""
+        return [(c, max(0, self.effectifs.get(c, 0) - int(self.ecartes.get(c, 0))))
+                for c in NIVEAUX_DU_PLUS_SUR if c in self.effectifs]
 
     def phrase(self) -> str:
         """« Parcellaire : 103 détections — 12 très probables, 30 probables, 41 possibles, 20 douteuses »."""
@@ -78,8 +93,12 @@ class LigneBilan:
             return f"{self.label} : aucune détection"
         morceaux = []
         for cat, n in self.par_niveau():
+            if n == 0 and self.ecartes.get(cat):
+                continue                       # niveau entièrement grisé : dit avec les écartées
             sing, plur = _ADJECTIFS.get(cat, (cat, cat))
             morceaux.append(f"{_nb(n)} {sing if n == 1 else plur}")
+        if self.n_ecartees:
+            morceaux.append(f"{_nb(self.n_ecartees)} {LIBELLE_ECARTEES if self.n_ecartees > 1 else LIBELLE_ECARTEES[:-1]}")
         total = f"{_nb(self.total)} détection{'s' if self.total > 1 else ''}"
         return f"{self.label} : {total} — {', '.join(morceaux)}"
 
@@ -88,6 +107,7 @@ class LigneBilan:
             "slug": self.slug, "label": self.label, "couche": self.couche, "classe": self.classe,
             "modele": self.modele, "total": self.total,
             "effectifs": {c: n for c, n in self.par_niveau()},
+            "ecartees": self.n_ecartees,
         }
 
 
@@ -107,6 +127,13 @@ def effectifs_par_categorie(entree: Optional[Mapping[str, Any]]) -> Optional[Dic
         except (TypeError, ValueError):
             continue
     return out
+
+
+def ecartes_par_categorie(entree: Optional[Mapping[str, Any]]) -> Dict[str, int]:
+    """Les ``ecartes`` du sidecar ramenées aux identifiants de catégorie ; vide si absentes."""
+    if not isinstance(entree, Mapping) or not isinstance(entree.get("ecartes"), Mapping):
+        return {}
+    return effectifs_par_categorie({"effectifs": entree["ecartes"]}) or {}
 
 
 def _labels_par_slug(runs: Optional[Sequence[Any]]) -> Dict[str, str]:
@@ -147,5 +174,6 @@ def collecter(det_dir: Path, runs: Optional[Sequence[Any]] = None) -> List[Ligne
                 classe=str(entree.get("classe") or couche), modele=str(entree.get("modele") or ""),
                 categories=categories_sidecar(entree),
                 effectifs=effectifs_par_categorie(entree) or {},
+                ecartes=ecartes_par_categorie(entree),
             ))
     return lignes

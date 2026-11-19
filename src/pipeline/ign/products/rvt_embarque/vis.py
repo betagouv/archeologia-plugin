@@ -1,3 +1,4 @@
+# Modifié pour Archéolog'IA (2026-11) : distance_transform_edt importé de scipy.ndimage (même fonction), cf. NOTICE.
 """
 Relief Visualization Toolbox – Visualization Functions
 
@@ -21,7 +22,7 @@ Copyright:
 # python libraries
 import numpy as np
 from scipy.interpolate import griddata, RectBivariateSpline
-from scipy.ndimage.morphology import distance_transform_edt
+from scipy.ndimage import distance_transform_edt
 from scipy.spatial import cKDTree
 
 

@@ -502,6 +502,20 @@ QPushButton[role="micro"] {
     font-family: "Consolas", "Courier New", monospace; font-size: 11px;
 }
 /* Annuler = action destructive : teinte danger (tons des erreurs du thème). */
+/* ---- Fin de traitement (2026-11-12) : second geste, liens discrets, ligne d'état ---- */
+#SecondButton {
+    background: #ffffff; border: 1px solid #1d5a96; border-radius: 2px;
+    color: #1d5a96; font-weight: bold; padding: 4px 16px; min-height: 22px;
+}
+#SecondButton:hover { background: #e6eff8; }
+#SecondButton:focus { border-color: #2b79c2; background: #e6eff8; }
+#SecondButton:disabled { background: #f3f3f3; border-color: #b0b0b0; color: #909090; }
+#RunLien { background: transparent; border: none; color: #1d5a96; padding: 2px 6px; min-height: 20px; text-decoration: underline; }
+#RunLien:hover { color: #143f6b; }
+#RunLien:focus { background: #d6e6f4; }
+#RunLien:disabled { color: #9a9a9a; }
+#RunContexteEtat { color: #4f5a66; font-size: 11px; }
+#RunSousFrise { color: #1d5a96; font-size: 11px; }
 #RunCancelBtn {
     background: #fbe7e7; border: 1px solid #a83838; border-radius: 2px;
     color: #7a2727; font-weight: bold; padding: 4px 16px;
@@ -705,6 +719,36 @@ QPushButton[role="micro"] {
     padding: 8px 12px; font-size: 11px; color: #1c1c1c;
 }
 #VisuEmpty { color: #4f5a66; font-style: italic; font-size: 11px; }
+
+/* ---- Page « Fonds de carte » : une ligne par fond, sur un axe du temps ---- */
+#VisuPagesBar { background: #ffffff; border-bottom: 1px solid #c4c4c4; }
+#FondTete { background: #f0f0f0; border-top: 1px solid #c4c4c4; border-bottom: 1px solid #c4c4c4; }
+#FondColonne { font-size: 10px; color: #4f5a66; }
+#FondListe { background: #ffffff; }
+#FondLigne { background: #ffffff; border-bottom: 1px solid #e4e4e4; }
+#FondLigne:hover { background: #f5f9fd; }
+#FondVignette { border: 1px solid #b8b8b8; background: #f0f0f0; }
+#FondEpoque { font-family: Consolas, monospace; font-size: 10px; color: #1d5a96; }
+#FondTitre { font-size: 11px; font-weight: 600; color: #000000; }
+#FondEtat { font-size: 10px; color: #9a6a12; }
+#FondProvenance { font-size: 10px; color: #4f5a66; }
+#FondIci { font-size: 11px; color: #2c2c2c; }
+#FondOutils { background: #ffffff; border-bottom: 1px solid #c4c4c4; }
+#FondRecherche { font-size: 11px; padding: 3px 6px; border: 1px solid #c4c4c4; border-radius: 3px; }
+#FondPuce { font-size: 11px; padding: 3px 10px; border: 1px solid #c4c4c4; border-radius: 10px; background: #ffffff; color: #2c2c2c; }
+#FondPuce:checked { background: #e6eef7; border-color: #2b79c2; color: #1d5a96; }
+#FondQuoi { font-size: 11px; color: #4f5a66; }
+#FondSection:focus { border: 1px solid #2b79c2; }
+#FondSectionCoches { font-size: 10px; font-weight: bold; color: #1d5a96; }
+#FondAilleurs { font-size: 11px; color: #1d5a96; text-align: left; padding: 8px 12px; border: none; background: #f7f7f7; }
+#FondAilleurs:hover { text-decoration: underline; }
+#FondPied { background: #ffffff; border-top: 1px solid #c4c4c4; }
+#FondSection { background: #f7f7f7; border-bottom: 1px solid #c4c4c4; }
+#FondSection[sorte="objets"] { background: #eef4ec; border-top: 2px solid #3d7a3a; }
+#FondSectionTitre { font-size: 10px; font-weight: bold; color: #1d5a96; letter-spacing: 1px; }
+#FondSection[sorte="objets"] #FondSectionTitre { color: #2f6b2c; }
+#FondSectionSous { font-size: 10px; color: #4f5a66; }
+#FondLigne[sorte="objets"] { background: #fbfdfa; }
 
 /* ---- Cartes du mur ---- */
 #VisuCard { background: #ffffff; border: 1px solid #8a94a0; border-radius: 3px; }
