@@ -161,6 +161,16 @@ def _requested(products: Optional[Mapping], product: str) -> bool:
     return bool((products or {}).get(product, False))
 
 
+def marge_requise_m(products: Optional[Mapping], rvt_params: Optional[Mapping]) -> float:
+    """Marge (m) qu'il faut autour d'une dalle pour que ses indices ne cousent pas : le plus grand rayon de noyau
+    des produits demandés, plus un pixel ; 0 sans produit à rayon réglable (2026-11-18, coutures du MSTP).
+    ``rvt_params`` en pixels avec ``resolution_m`` (:func:`indices_metres.en_px`)."""
+    res = resolution_de(rvt_params)
+    rayons = [kernel_radius_px(p, rvt_params) for p in KERNEL_PARAMS if _requested(products, p)]
+    rayons = [r for r in rayons if r]
+    return (max(rayons) + 1) * res if rayons else 0.0
+
+
 def tiled_context_warnings(
     products: Optional[Mapping],
     rvt_params: Optional[Mapping],
