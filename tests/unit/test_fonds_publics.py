@@ -298,9 +298,10 @@ def test_le_contexte_moderne_ajoute_les_donnees_que_cite_le_croisement():
     assert set(cc.ID_CATALOGUE.values()) <= set(ids)                                 # toutes celles de contexte_source
     cochees = {f.id for _g, f, v in couches if v}
     assert "routes_chemins" in ids and "routes_chemins" not in cochees               # les routes noient la carte
-    # La sélection validée le 2026-11-12 : dix couches cochées, les autres présentes et décochées.
+    # La sélection validée le 2026-11-12, sans les lieux-dits (2026-11-19 : retirés du croisement le 18/11,
+    # de simples étiquettes de carte) : les autres présentes et décochées.
     assert cochees == {"ctx_ronds_points", "batiments", "ctx_reservoirs", "ctx_cimetieres", "surfaces_en_eau",
-                       "cours_eau", "lieux_dits", "zones_habitation", "monuments_historiques",
+                       "cours_eau", "zones_habitation", "monuments_historiques",
                        "ctx_cavites", "ctx_mouvements_terrain"}
     assert len(ids) == 31
     # Géorisques a son propre service ; tout le reste vient de la Géoplateforme.

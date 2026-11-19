@@ -70,7 +70,7 @@ CONTEXTE_MODERNE = (
         ("ctx_canalisations", "Canalisations", _T + "canalisation", "ligne", "nature", "", False),
     )),
     ("Parcellaire et toponymie", "#636363", (
-        ("lieux_dits", "Lieux-dits", _T + "lieu_dit_non_habite", "point", "toponyme", "", True),
+        ("lieux_dits", "Lieux-dits", _T + "lieu_dit_non_habite", "point", "toponyme", "", False),
     )),
     ("IGN complément", "#c51b7d", (
         ("zones_habitation", "Zones d'habitation", _T + "zone_d_habitation", "surface", "nature", "", True),
