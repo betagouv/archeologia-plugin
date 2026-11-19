@@ -84,7 +84,7 @@ def test_marquer_ecrit_les_cinq_champs_sans_toucher_au_reste(run):
                             "Terrains de sport · Équipements de transport (parkings, aires, péages) · "
                             "Monuments historiques · Archéologie des PLU (zones) · "
                             "Archéologie des PLU (points) (données publiques), lue le 2026-11-11")
-    assert bilan.phrase.startswith("Contexte moderne : sur 4 détections, 2 en contexte moderne")
+    assert bilan.phrase.startswith("Contexte moderne : sur 4 détections, 2 écartées")
     # une seule passe par donnée et par carré de 10 km occupé : cinq données depuis le retrait des lieux-dits
     # (2026-11-18), plus les quatre des linéaires (2026-11-19) puisque le traitement a un talus, et trois de
     # patrimoine (les zones de présomption régionales ne sont pas demandées en Moselle), et les quatre

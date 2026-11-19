@@ -38,7 +38,7 @@ def _nb(n: int) -> str:
 
 
 #: Libellé des détections grisées par le contexte moderne, dans le bilan.
-LIBELLE_ECARTEES = "contexte moderne"
+LIBELLE_ECARTEES = "écartées"
 
 
 def texte_niveaux_effectifs(effectifs: Mapping[str, int], ecartees: int = 0) -> str:
@@ -94,11 +94,11 @@ class LigneBilan:
         morceaux = []
         for cat, n in self.par_niveau():
             if n == 0 and self.ecartes.get(cat):
-                continue                       # niveau entièrement grisé : dit avec le contexte moderne
+                continue                       # niveau entièrement grisé : dit avec les écartées
             sing, plur = _ADJECTIFS.get(cat, (cat, cat))
             morceaux.append(f"{_nb(n)} {sing if n == 1 else plur}")
         if self.n_ecartees:
-            morceaux.append(f"{_nb(self.n_ecartees)} en {LIBELLE_ECARTEES}")
+            morceaux.append(f"{_nb(self.n_ecartees)} {LIBELLE_ECARTEES}")
         total = f"{_nb(self.total)} détection{'s' if self.total > 1 else ''}"
         return f"{self.label} : {total} — {', '.join(morceaux)}"
 

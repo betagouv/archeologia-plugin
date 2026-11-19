@@ -1089,7 +1089,7 @@ class RunView(QWidget):
             ecartees = sum(int(getattr(ligne, "n_ecartees", 0) or 0) for ligne in self._bilan)
             nb = lambda n: f"{n:,}".replace(",", " ")   # noqa: E731
             self._bilan_sous.setText(
-                f"{nb(total)} détections" + (f" · {nb(total - ecartees)} à examiner, {nb(ecartees)} en contexte moderne"
+                f"{nb(total)} détections" + (f" · {nb(total - ecartees)} à examiner, {nb(ecartees)} écartées"
                                               if ecartees else ", du plus sûr au plus douteux"))
         else:
             cv = (self._config or {}).get("computer_vision") or {}

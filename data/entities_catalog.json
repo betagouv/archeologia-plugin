@@ -69,14 +69,16 @@
       "label": "Enclos",
       "description": "Enclos à talus ou fossé, circulaires, curvilignes ou quadrangulaires.",
       "display_order": 96,
-      "morphology": "circulaire"
+      "morphology": "circulaire",
+      "min_area_m2": 50
     },
     {
       "id": "enclos_circulaire",
       "label": "Enclos circulaires",
       "description": "Enclos de forme circulaire (ringforts).",
       "display_order": 97,
-      "morphology": "circulaire"
+      "morphology": "circulaire",
+      "min_area_m2": 50
     }
   ]
 }

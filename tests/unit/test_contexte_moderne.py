@@ -160,16 +160,16 @@ def test_la_source_est_celle_de_l_objet_qui_decide():
     assert cm.champs([], "enclos", "tout", titres, "2026-11-12")["contexte_source"] == "tout"
     assert cm.resume(0, 0, 0) == ""
     assert cm.resume(0, 0, 12) == "Contexte moderne : rien à signaler autour de 12 détections."
-    assert cm.resume(3, 5, 40) == ("Contexte moderne : sur 40 détections, 3 en contexte moderne "
-                                   "(catégorie grise, décochée), 5 avec une information de contexte.")
+    assert cm.resume(3, 5, 40) == ("Contexte moderne : sur 40 détections, 3 écartées "
+                                   "(catégorie « Écartées », décochée), 5 avec une information de contexte.")
 
 
 def test_expression_de_la_legende():
     assert cm.expression_legende("fiabilite") == (
-        "if(coalesce(\"contexte_moderne\", '') <> '', 'Contexte moderne', \"fiabilite\")")
+        "if(coalesce(\"contexte_moderne\", '') <> '', 'Écartées', \"fiabilite\")")
     assert cm.expression_legende("conf_bin").endswith('"conf_bin")')
     deja = cm.expression_legende("fiabilite")
-    assert cm.expression_legende(deja).count("Contexte moderne") == 2      # jamais appelé deux fois en pratique
+    assert cm.expression_legende(deja).count("Écartées") == 2      # jamais appelé deux fois en pratique
 
 
 def test_la_fabrique_des_couches_ajoute_la_categorie_sans_toucher_a_fiabilite():
@@ -179,7 +179,8 @@ def test_la_fabrique_des_couches_ajoute_la_categorie_sans_toucher_a_fiabilite():
     racine = Path(__file__).resolve().parents[2]
     loader = (racine / "src/ui/layer_loader.py").read_text(encoding="utf-8")
     corps = loader.split("def _ajouter_contexte_moderne")[1].split("\ndef ")[0]
-    assert 'indexFromName("contexte_moderne") < 0' in corps and "setRenderState(False)" in corps
+    # 2026-11-19 : la catégorie « Écartées » existe dès que l'un des champs d'écart est dans la couche
+    assert "indexFromName(c) >= 0" in corps and "CHAMPS_ECART" in corps and "setRenderState(False)" in corps
     assert "setClassAttribute(expression_legende(" in corps and '"outline_style": "dash"' in corps
     # 2026-11-18 : en comparaison A/B, « Charbonnières — Structures linéaires… » n'est pas une structure linéaire
     assert "est_lineaire(layer.name().split(\" — \")[0])" in corps

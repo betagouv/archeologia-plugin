@@ -674,8 +674,9 @@ def _filter_gpkg_by_min_area(
     exempt_layers: frozenset = frozenset(),
 ) -> None:
     """
-    Filtre les détections trop petites dans un ou plusieurs GeoPackages.
-    Les géométries dont l'aire est inférieure à min_area_m2 sont supprimées de chaque couche.
+    Écarte les détections trop petites dans un ou plusieurs GeoPackages : celles dont l'aire est inférieure
+    à min_area_m2 restent dans leur couche, avec leur raison dans ``ecart_taille`` (2026-11-19 : supprimées
+    avant) ; la légende les range dans « Écartées ».
 
     Args:
         gpkg_paths: Liste des chemins vers les GeoPackages à filtrer
@@ -685,7 +686,7 @@ def _filter_gpkg_by_min_area(
             synthèse (enclos, zones de clusters) portent leur propre seuil
             d'aire par règle ; le seuil global du modèle ne doit pas les raboter.
     """
-    logger.info(f"Filtrage GPKG par aire: suppression des détections < {min_area_m2} m²")
+    logger.info(f"Filtrage GPKG par aire: détections < {min_area_m2} m² écartées (marquées)")
 
     for gpkg_path in gpkg_paths:
         p = Path(gpkg_path)
@@ -713,7 +714,6 @@ def _filter_gpkg_by_min_area(
                     except Exception:
                         pass
                 gdf['__area'] = gdf.geometry.area
-                n_before = len(gdf)
                 keep = gdf['__area'] >= min_area_m2
                 # Traçabilité membre→synthèse : un fragment tagué par une brique
                 # (cluster_id/enclos_id/axe_id) survit au filtre d'aire global —
@@ -722,10 +722,18 @@ def _filter_gpkg_by_min_area(
                 for tag in ("cluster_id", "enclos_id", "axe_id"):
                     if tag in gdf.columns:
                         keep = keep | (gdf[tag].fillna("").astype(str).str.len() > 0)
-                gdf = gdf[keep].drop(columns=['__area'], errors='ignore')
-                n_removed = n_before - len(gdf)
+                # Marquées, jamais supprimées (2026-11-19) : la détection reste, grisée dans « Écartées »,
+                # avec sa raison (même nom que app.services.contexte_moderne.CHAMP_ECART_TAILLE).
+                if "ecart_taille" not in gdf.columns:
+                    gdf["ecart_taille"] = ""
+                gdf["ecart_taille"] = gdf["ecart_taille"].fillna("").astype(str)
+                petites = ~keep
+                gdf.loc[petites, "ecart_taille"] = [
+                    f"surface de {a:.0f} m², sous le minimum de {min_area_m2:g} m²" for a in gdf.loc[petites, "__area"]]
+                gdf = gdf.drop(columns=['__area'], errors='ignore')
+                n_removed = int(petites.sum())
                 if n_removed > 0:
-                    logger.info(f"Filtrage GPKG: {n_removed} détection(s) supprimée(s) dans '{layer}' (<{min_area_m2} m²)")
+                    logger.info(f"Filtrage GPKG: {n_removed} détection(s) écartée(s) dans '{layer}' (<{min_area_m2} m²)")
                 _safe_to_gpkg(gdf, str(p), layer=layer)
                 total_remaining += len(gdf)
             except Exception as e:

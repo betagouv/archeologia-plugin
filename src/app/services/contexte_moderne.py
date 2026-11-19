@@ -492,7 +492,7 @@ def resume(marquees: int, informees: int, total: int) -> str:
         return f"Contexte moderne : rien à signaler autour de {total} détection{'s' if total > 1 else ''}."
     morceaux = []
     if marquees:
-        morceaux.append(f"{marquees} en contexte moderne (catégorie grise, décochée)")
+        morceaux.append(f"{marquees} écartées (catégorie « Écartées », décochée)")
     if informees:
         morceaux.append(f"{informees} avec une information de contexte")
     return f"Contexte moderne : sur {total} détection{'s' if total > 1 else ''}, " + ", ".join(morceaux) + "."
@@ -530,13 +530,20 @@ def ligne_etat(trace: Optional[Mapping[str, Any]]) -> str:
 # ----------------------------------------------------------------------
 # Légende (lue par ui/layer_loader : rendu catégorisé sur une expression)
 # ----------------------------------------------------------------------
-#: Valeur et libellé de la catégorie grise de la légende ; décochée à l'ouverture.
-CATEGORIE_LEGENDE = "Contexte moderne"
+#: Valeur et libellé de la catégorie grise de la légende ; décochée à l'ouverture. « Écartées » depuis le
+#: 2026-11-19 (« Contexte moderne » avant) : elle reçoit aussi les détections sous l'aire minimale.
+CATEGORIE_LEGENDE = "Écartées"
 COULEUR_LEGENDE = "#8a8f94"
+#: Raison d'un écart par la taille, écrite par le filtre d'aire (pipeline/cv/conversion_shp).
+CHAMP_ECART_TAILLE = "ecart_taille"
+#: Les champs qui écartent une détection, dans l'ordre où l'infobulle les dit.
+CHAMPS_ECART = ("contexte_moderne", CHAMP_ECART_TAILLE)
 
 
-def expression_legende(classement: str) -> str:
-    """L'expression du rendu catégorisé : « Contexte moderne » si le champ est rempli, sinon la valeur
-    d'origine (``fiabilite`` ou ``conf_bin``, un nom de champ ou déjà une expression)."""
+def expression_legende(classement: str, champs=("contexte_moderne",)) -> str:
+    """L'expression du rendu catégorisé : « Écartées » si l'un des ``champs`` est rempli, sinon la valeur
+    d'origine (``fiabilite`` ou ``conf_bin``, un nom de champ ou déjà une expression). ``champs`` : ceux que
+    la couche porte vraiment — un champ absent rendrait l'expression invalide et masquerait tout."""
     origine = classement if classement.startswith(("(", "if(", "CASE")) else f'"{classement}"'
-    return f"if(coalesce(\"contexte_moderne\", '') <> '', '{CATEGORIE_LEGENDE}', {origine})"
+    test = " or ".join(f"coalesce(\"{c}\", '') <> ''" for c in champs)
+    return f"if({test}, '{CATEGORIE_LEGENDE}', {origine})"
