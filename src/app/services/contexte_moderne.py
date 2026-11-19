@@ -82,7 +82,11 @@ RAYON_COURS_EAU = 15.0     # un cours d'eau qui traverse ou longe la détection
 PART_DEDANS = 0.5
 #: Linéaires (2026-11-19) : part de la détection à moins de :data:`RAYON_LINEAIRE` m de la ligne (son axe,
 #: dans la BD TOPO), à partir de laquelle on dit qu'elle la « longe ». Mesure en surface, qui vaut la part
-#: de longueur pour une détection allongée. Calibrage : ``D:/brouillons/galerie_regles_2026-11-19``.
+#: de longueur pour une détection allongée. Calibrage (2026-11-19, 6 704 détections linéaires de 8 traitements,
+#: ``D:/brouillons/galerie_regles_2026-11-19/calibre_lineaires.json``) : largeur médiane 5,8 m (90 % sous 7 m) ;
+#: la part qui longe une route croît sans palier (255, 488, 621, 846, 1 059 détections à 30 % pour 3, 5, 6, 8,
+#: 10 m) : 6 m = une demi-largeur et environ 3 m d'écart de position de l'IGN, sans gagner les talus
+#: d'accotement. À 30 %, 621 détections longent une route ; 392 à 50 %.
 RAYON_LINEAIRE = 6.0
 PART_LONGE = 0.3
 #: Patrimoine : un monument ou un site connu à moins de 50 m. Assez pour l'enceinte, les fossés ou la motte
