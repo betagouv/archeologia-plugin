@@ -105,7 +105,7 @@ def p61_2(app, w):
     btns = w._source_page._stage_buttons
     vus = [(b._label_text, b._sub_text) for b in btns.values()]
     attendu = [("Dalles IGN à télécharger", "connexion Internet"), ("Nuages LiDAR", "fichiers LAZ ou LAS"),
-               ("MNT existant", "TIF en Lambert-93"), ("Indices de visualisation existants", "TIF en Lambert-93"),
+               ("MNT existant", "TIF projeté en mètres"), ("Indices de visualisation existants", "TIF projeté en mètres"),
                ("Structures à chercher", "facultatif")]
     ok = vus == attendu and w._source_page._dalles_btn.text() == "Choisir sur la carte"
     verdict("61.2", ok, f"frise {vus} ; bouton « {w._source_page._dalles_btn.text()} »")
@@ -245,7 +245,7 @@ def p62_3(app, w, cfg_base):
     sans_image = (it2._a_corriger, it2._sub.text(), it2.toolTip())
     cfg2 = json.loads(json.dumps(cfg_base))
     cfg2["processing"]["products"]["MSTP"] = True
-    cfg2.setdefault("rvt_params", {}).setdefault("mstp", {})["local_scale_min"] = 50   # > max 21 (section rvt_params.mstp)
+    cfg2.setdefault("rvt_params", {}).setdefault("mstp", {})["local_scale_min_m"] = 25.0   # > max 10,5 m (réglages en mètres depuis le 2026-10-31)
     w._apply_config(cfg2)
     w._goto_step(1)
     pump(app, 8)
@@ -811,6 +811,11 @@ def p65_1(app, w, cfg_base, captures):
 
 @point("65.2")
 def p65_2(app, w, captures):
+    # Marge entre dalles par défaut (20 %) : sans elle, la configuration du profil (marge à 0) donne un bandeau orange.
+    origine = json.loads(json.dumps(w._config))
+    cfg = json.loads(json.dumps(origine))
+    cfg.setdefault("processing", {})["tile_overlap"] = 20
+    w._apply_config(cfg)
     w._goto_step(1)
     w._goto_step(4)
     w._launch_page.refresh_preflight(w._config)          # lu AVANT tout événement : l'état « en cours » est fugace ici
@@ -819,6 +824,7 @@ def p65_2(app, w, captures):
     apres = re.sub("<[^>]+>", "", w._launch_page._banner.text())
     pastille = w._launch_page._preflight_pill.text()
     w.grab().save(str(captures / "65-2_pret.png"))
+    w._apply_config(origine)
     ok = pendant == "Vérification de l'environnement…" and statut == "ok" and apres == "Prêt à lancer." and re.search(r"●\s+(\d+)/\1$", pastille) is not None
     verdict("65.2", ok, f"pendant « {pendant} » ; statut {statut} ; bandeau « {apres} » ; pastille « {pastille} »")
 
@@ -1048,7 +1054,7 @@ def p66_4(app, v):
     texte = texte_niveaux_effectifs(v._bilan[0].effectifs)
     widget = v._bilan_box.findChild(bf.BilanFiabiliteWidget)
     rangee = getattr(bf, "_RANGEE", None)
-    ok = texte == "très probable 120 · probable 80 · possible 40 · douteux 12" and rangee == 34 and widget is not None
+    ok = texte == "très probable 120 · probable 80 · possible 40 · douteux 12" and rangee == 24 and widget is not None   # tableau (§ 78)
     verdict("66.4", ok, f"texte sous la barre « {texte} » ; rangée {rangee} px ; widget présent {widget is not None}")
 
 
@@ -1165,6 +1171,10 @@ def p70_1(app, w):
     w._goto_step(2)
     pump(app)
     compteur = page2._count_label.text()
+    # LD coché à l'étape 2 (rien ne l'est par défaut depuis le 2026-11-12) : l'infobulle du sigle est celle d'un indice lu.
+    cfg_ld = json.loads(json.dumps(w._config))
+    cfg_ld.setdefault("processing", {}).setdefault("products", {})["LD"] = True
+    w._apply_config(cfg_ld)
     w._goto_step(3)
     pump(app)
     page3._on_entity_toggled("cratere", True)
@@ -1177,7 +1187,7 @@ def p70_1(app, w):
     etape5 = [t for t in labels(w._run_view._timeline) if t == "Visualisation du relief"]
     narr = (RACINE / "src" / "app" / "user_narrator.py").read_text(encoding="utf-8")
     flux = w._visu_tab._wall_meta.text() if w._visu_tab else ""
-    sous_titre = [t for t in labels(w._visu_tab) if t.startswith("Produits déjà publiés")] if w._visu_tab else []
+    sous_titre = [t for t in labels(w._visu_tab) if t.startswith("Fonds de carte publics et produits déjà publiés")] if w._visu_tab else []
     stage = [v for v in vars(progress_stages).values() if isinstance(v, dict) and "Visualisation du relief" in v.values()]
     checks = {
         "rail": w._rail._items[1]._label.text() == "Visualisation du relief",
@@ -1267,7 +1277,7 @@ def main(argv=None) -> int:
     p66_5(app)
     p66_6(app)
     verdict("66.3", None, "journal de fichier : au traitement réel (marge à 0)")
-    p_manuel("66.7", "etape-5-traitement", ["Ajouter au projet QGIS courant", "Relancer maintenant", "très probable 120", "pipeline_log"])
+    p_manuel("66.7", "etape-5-traitement", ["Ajouter au projet QGIS courant", "Relancer maintenant", "est un tableau", "pipeline_log"])
     v.close()
     p67_1(app, w)
     r2 = p67_2(app, w, args.recette)
