@@ -186,7 +186,9 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
         if est_lineaire(structure):
             return None
         if a.get(SYMBOLE):
-            return INFORMER, RAYON_INFO
+            # carré symbolique de l'IGN = un point : dans la détection, il écarte ; à côté, il informe
+            dedans = objet.distance_m < CONTACT_M and objet.source in EXCLUSIONS_ACTIVES
+            return (EXCLURE, 0.0) if dedans else (INFORMER, RAYON_INFO)
         exclut = objet.source in EXCLUSIONS_ACTIVES and objet.part >= PART_EXCLUSION
         return (EXCLURE if exclut else INFORMER), 0.0       # au contact : à côté, il ne dit rien
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
@@ -418,7 +420,7 @@ def phrase(objet: Objet, structure: str = "") -> str:
         nom = noms.get(_txt(objet.attributs, "nature"), noms[""])
         if objet.attributs.get(SYMBOLE):
             e = "e" if nom in _FEMININS else ""
-            ou = "touchant la détection" if objet.distance_m < CONTACT_M else f"à {round(objet.distance_m)} m"
+            ou = "dans la détection" if objet.distance_m < CONTACT_M else f"à {round(objet.distance_m)} m"
             return f"{nom} signalé{e} {ou} (emprise non dessinée par l'IGN)"
         return f"{nom} {_ou(objet)}"
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):

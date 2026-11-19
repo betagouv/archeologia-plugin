@@ -95,7 +95,7 @@ Certains objets informent sans griser la détection, parce qu'ils ne disent pas 
 - des **ruines**, un **moulin** ou un **château** nommés par l'IGN parmi les zones d'habitation ;
 - un rond-point qui recouvre moins de 10 % de la détection ;
 - un **réservoir** ou un château d'eau, une **station d'épuration** ou une **déchèterie**, un **terrain de sport**, un **parking** qui recouvre moins de 10 % de la détection ;
-- un parking, une station d'épuration, une déchèterie ou un terrain de sport dont l'IGN n'a pas dessiné l'emprise, à moins de 15 m : la BD TOPO le pose alors en **carré de 5 m** à son emplacement, qui ne dit rien de sa forme. Il n'écarte jamais : « parking signalé à 6 m (emprise non dessinée par l'IGN) ».
+- un parking, une station d'épuration, une déchèterie ou un terrain de sport dont l'IGN n'a pas dessiné l'emprise, à moins de 15 m : la BD TOPO le pose alors en **carré de 5 m** à son emplacement, qui ne dit rien de sa forme. Le plugin le compte comme un point, le centre du carré : à côté de la détection, il informe (« parking signalé à 6 m (emprise non dessinée par l'IGN) ») ; s'il tombe dans la détection, il l'écarte (« parking signalé dans la détection »).
 
 Les zones d'habitation et ces cinq dernières lignes ne concernent que les structures ponctuelles.
 
