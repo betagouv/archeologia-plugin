@@ -458,7 +458,12 @@ def _consulter_flux(app, w, img: Path, log) -> bool:
     log("consulter les flux : départements", len(visu._catalogue.covered), "| vignettes :", vignettes.is_dir(),
         "| mur :", visu._wall_title.text())
     relief_ok = len(visu._catalogue.covered) == 4 and visu._wall_title.text() == "Côte-d'Or"
+    # Les fonds de carte tels que les voit un poste livré : sans catalogue de flux, pas de barre de pages
+    # (2026-11-19 : la capture montrait « Relief par zone », absent du plugin publié).
+    barre = visu._page_btns[0].parentWidget()
+    barre.setVisible(False)
     fonds_ok = _fonds_de_carte(app, w, visu, img, log)
+    barre.setVisible(True)
     tabs.setCurrentIndex(0)
     app.processEvents()
     return relief_ok and fonds_ok
