@@ -30,6 +30,24 @@ import pandas as pd
 from shapely.geometry import Polygon
 import geopandas as gpd
 
+#: Classes dont la détection est une emprise pleine (2026-11-19) : la segmentation rendait certains enclos
+#: en anneau, alors que les emprises d'entraînement sont pleines.
+CLASSES_EMPRISE_PLEINE = frozenset({"enclos", "enclos_circulaire"})
+
+
+def emprise_pleine(geom):
+    """La géométrie sans ses trous : un polygone garde son seul contour extérieur, chaque partie d'un
+    multipolygone aussi."""
+    if geom is None or geom.is_empty:
+        return geom
+    if geom.geom_type == "Polygon":
+        return Polygon(geom.exterior.coords) if geom.interiors else geom
+    if geom.geom_type == "MultiPolygon":
+        from shapely.geometry import MultiPolygon
+
+        return MultiPolygon([Polygon(p.exterior.coords) for p in geom.geoms])
+    return geom
+
 
 def _safe_to_file(gdf: gpd.GeoDataFrame, path: str, **kwargs) -> None:
     """Écrit un GeoDataFrame en fichier vecteur en préférant pyogrio (compatible PyInstaller)."""
@@ -1610,6 +1628,10 @@ def create_shapefile_from_detections(
                     gdf["geometry"] = gdf["geometry"].apply(_fix_geom)
                 except Exception:
                     pass
+
+                # 3 bis) Un enclos est une emprise pleine : trous de la segmentation et de la fusion bouchés
+                if class_name in CLASSES_EMPRISE_PLEINE:
+                    gdf["geometry"] = gdf["geometry"].apply(emprise_pleine)
 
                 # 4) Normalisation des colonnes attributaires (évite types mixtes)
                 text_cols = ["validation", "corr_pred", "model_pred", "model_name", "conf_bin", "conf_color", "cluster_id", "enclos_id", "forme", "axe_id", "statut", _FIAB_LABEL]
