@@ -16,11 +16,16 @@ def objet(geom, **props):
     return {"geometry": mapping(geom), "properties": props}
 
 
-def test_cellules_calees_sur_la_grille_et_elargies_du_rayon():
+def test_cellules_reduites_a_l_emprise_des_detections():
+    """2026-11-19 (décision de l'utilisateur) : on ne télécharge plus le carré de 10 km entier mais, dans
+    chaque carré occupé, l'emprise des détections élargie de la marge (sur le traitement « test » :
+    9 461 bâtiments reçus, 204 utiles). Jamais plus de requêtes qu'avant : une boîte par carré occupé."""
     assert cc.cellules([]) == []
-    assert cc.cellules([(1000, 1000, 2000, 2000)]) == [(0.0, 0.0, 10000.0, 10000.0)]
-    # une détection à 5 m du bord : le rayon de recherche (15 m) déborde sur la cellule voisine
-    assert cc.cellules([(9990, 5000, 9995, 5010)]) == [(0.0, 0.0, 10000.0, 10000.0), (10000.0, 0.0, 20000.0, 10000.0)]
+    assert cc.cellules([(1000, 1000, 2000, 2000)], marge=15) == [(985, 985, 2015, 2015)]
+    # deux détections dans le même carré : une seule boîte, leur union
+    assert cc.cellules([(1000, 1000, 1010, 1010), (3000, 4000, 3010, 4010)], marge=0) == [(1000, 1000, 3010, 4010)]
+    # une détection à 5 m du bord : la marge déborde sur le carré voisin, chaque boîte reste dans son carré
+    assert cc.cellules([(9990, 5000, 9995, 5010)], marge=15) == [(9975, 4985, 10000, 5025), (10000, 4985, 10010, 5025)]
     assert len(cc.cellules([(942500, 6731500, 1003500, 6768500)])) == 7 * 4      # Vosges : 7 × 4 carrés
 
 

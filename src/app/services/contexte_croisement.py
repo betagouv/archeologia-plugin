@@ -5,8 +5,9 @@ Les règles et les phrases sont dans :mod:`contexte_moderne` ; ce module fait le
 0. cinq données : bâtiments, surfaces en eau, et — pour les structures ponctuelles — cours d'eau, zones
    d'habitation et ronds-points (les tronçons de route de nature « Rond-point », refermés en disques) ; les
    lieux-dits en sont sortis le 2026-11-18 ;
-1. :func:`cellules` découpe l'emprise des détections en carrés de 10 km (une requête WFS par carré
-   occupé, paginée par 5 000 : un run de 60 × 36 km ne tient pas en une seule requête) ;
+1. :func:`cellules` découpe l'emprise des détections en carrés de 10 km et, dans chaque carré occupé, ne
+   garde que l'emprise des détections élargie de la marge (une requête WFS par carré, paginée par 5 000 :
+   un run de 60 × 36 km ne tient pas en une seule requête) ;
 2. :func:`telecharger` lit les objets d'une couche WFS de la Géoplateforme sur ces carrés, en Lambert-93 ;
 3. :func:`croiser` calcule, pour chaque détection, la distance et la part recouverte de chaque objet
    proche (index spatial ``STRtree``), puis les cinq champs par :func:`contexte_moderne.champs`.
@@ -49,21 +50,34 @@ Bbox = Tuple[float, float, float, float]
 
 
 def cellules(emprises: Iterable[Bbox], marge: float = cm.RAYON_RECHERCHE, cote: float = CELLULE_M) -> List[Bbox]:
-    """Les carrés de ``cote`` m (calés sur la grille de ``cote`` m) que touchent les emprises des
-    détections élargies de ``marge``, dans un ordre stable. Aucune détection → aucune requête."""
-    occupees = set()
+    """Une boîte par carré de ``cote`` m occupé (grille de ``cote`` m, ordre stable) : l'union des emprises
+    des détections élargies de ``marge``, rognée au carré. Aucune détection → aucune requête.
+
+    2026-11-19 (décision de l'utilisateur) : le carré entier n'est plus demandé. Sur le traitement « test »
+    (3 × 3 km), il rapportait 9 461 bâtiments et 18 Mo pour 204 objets à portée d'une détection. Un carré
+    garde une seule requête (pagination comprise) : jamais plus de requêtes qu'avant ; un traitement qui
+    remplit ses carrés ne gagne rien, une zone compacte presque tout."""
+    boites: Dict[Tuple[int, int], Bbox] = {}
     for x0, y0, x1, y1 in emprises:
-        for i in range(math.floor((x0 - marge) / cote), math.floor((x1 + marge) / cote) + 1):
-            for j in range(math.floor((y0 - marge) / cote), math.floor((y1 + marge) / cote) + 1):
-                occupees.add((i, j))
-    return [(i * cote, j * cote, (i + 1) * cote, (j + 1) * cote) for i, j in sorted(occupees)]
+        a, b, c, d = x0 - marge, y0 - marge, x1 + marge, y1 + marge
+        for i in range(math.floor(a / cote), math.floor(c / cote) + 1):
+            for j in range(math.floor(b / cote), math.floor(d / cote) + 1):
+                rx0, ry0 = max(a, i * cote), max(b, j * cote)
+                rx1, ry1 = min(c, (i + 1) * cote), min(d, (j + 1) * cote)
+                if rx0 >= rx1 or ry0 >= ry1:
+                    continue
+                v = boites.get((i, j))
+                boites[(i, j)] = (rx0, ry0, rx1, ry1) if v is None else (
+                    min(v[0], rx0), min(v[1], ry0), max(v[2], rx1), max(v[3], ry1))
+    return [boites[k] for k in sorted(boites)]
 
 
 def url_page(typename: str, bbox: Bbox, debut: int, service: str = SERVICE_WFS, page: int = PAGE,
              filtre: str = "") -> str:
     """GetFeature GeoJSON en Lambert-93 d'une page d'objets d'un carré. ⚠ La Géoplateforme refuse les
     paramètres ``BBOX`` et ``CQL_FILTER`` ensemble : avec un ``filtre``, l'emprise passe dans le filtre."""
-    x0, y0, x1, y1 = bbox
+    # au mètre près, vers l'extérieur : une boîte serrée ne doit rien perdre à l'arrondi
+    x0, y0, x1, y1 = math.floor(bbox[0]), math.floor(bbox[1]), math.ceil(bbox[2]), math.ceil(bbox[3])
     tete = (f"{service}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES={typename}"
             f"&OUTPUTFORMAT=application/json&SRSNAME=EPSG:2154&COUNT={page}&STARTINDEX={debut}&SORTBY=cleabs")
     if filtre:

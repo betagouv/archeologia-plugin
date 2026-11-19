@@ -224,7 +224,7 @@ def marquer(det_dir: Path, lire_json: Callable[[str], Mapping], *, crs: str = "E
     emprises = [g.bounds for _g, _c, _f, geoms in lues for g in geoms if g is not None and not g.is_empty]
     carres = cc.cellules(emprises)
     journal(f"Contexte moderne : lecture de la BD TOPO de l'IGN (bâtiments, eau, cours d'eau, zones d'habitation, "
-            f"ronds-points) sur {len(carres)} carré{'s' if len(carres) > 1 else ''} de 10 km…")
+            f"ronds-points) autour des détections ({len(carres)} requête{'s' if len(carres) > 1 else ''} par donnée)…")
     try:
         objets = {source: cc.telecharger(source, carres, lire_json, annule) for source in cc.COUCHES}
     except Exception as exc:                       # noqa: BLE001 — réseau : jamais d'échec du traitement
