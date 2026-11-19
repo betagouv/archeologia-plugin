@@ -103,11 +103,14 @@ def _journal_en_cours(app, img: Path, log) -> None:
     v._run_started_at = time.monotonic() - 1575
     v._activity_dot.setVisible(True)
     v._cancel_btn.setEnabled(True)
+    v._cancel_btn.setVisible(True)                   # à côté du chrono, pendant le traitement seulement
     v._open_log_btn.setEnabled(True)
     for ligne in ("▶ Démarrage du traitement — Téléchargement IGN", "📍 Zone : 12 dalles à télécharger",
                   "      ↳ Dalle 12/12 : 174 Mo", "✓ 12 dalles téléchargées", "✓ MNT et indices : 12 dalles, 3 produits",
-                  "🔍 « Modèle cratères LD v1 » sur LD : 43 images", "      ↳ Image 31/43 : préparation"):
+                  "🔍 « Modèle cratères LD v1 » sur LD : 43 images"):
         v._append_log("INFO", ligne)
+    # la sous-progression : dans le journal ET sous la frise
+    v._update_transient_log("cv", "INFO", "      ↳ Image 31/43 : LHD_FXX_0945_6766_LD_A_LAMB… (fenêtre d'analyse 10/16)")
     v._on_stage_id("download")
     v._on_metric(12, 12, "dalles")
     v._on_stage_id("products")
@@ -173,7 +176,8 @@ def _journal_fin(app, img: Path, log) -> bool:
     v._bilan = [
         LigneBilan("crateres", "Cratères", "cratere", "cratere", "crateres_seg_ld_v1",
                    niveaux((0.29, 0.35, 0.5, 0.65), (0.0, 0.35, 0.6, 0.85)),
-                   {"quasi_certain": 412, "probable": 158, "possible": 61, "douteux": 97}),
+                   {"quasi_certain": 412, "probable": 158, "possible": 61, "douteux": 97},
+                   ecartes={"quasi_certain": 9, "probable": 14, "possible": 11, "douteux": 31}),   # grisés : contexte moderne
         LigneBilan("parcellaire", "Parcellaire", "parcellaire", "parcellaire", "lineaires_seg_v3_1",
                    niveaux((0.26, 0.3, 0.45, 0.6), (0.0, 0.35, 0.6, 0.85)),
                    {"quasi_certain": 18, "probable": 46, "possible": 39, "douteux": 22}),
@@ -182,11 +186,17 @@ def _journal_fin(app, img: Path, log) -> bool:
                    {"quasi_certain": 9, "probable": 31, "possible": 27, "douteux": 14}),
         LigneBilan("charbonnieres", "Charbonnières", "charbonniere", "charbonniere", "ponctuelles_2cl_det_ld_v1",
                    niveaux((0.2, 0.3, 0.45, 0.6), (0.0, 0.35, 0.6, 0.85)),
-                   {"quasi_certain": 6, "probable": 4, "possible": 3, "douteux": 5}),
+                   {"quasi_certain": 6, "probable": 4, "possible": 3, "douteux": 5},
+                   ecartes={"douteux": 2}),
     ]
     v._couches_a_charger = ((), (), (), ())          # le projet s'ouvrirait au clic : bouton actif
     v._on_run_enabled(True)
     v._open_report_btn.setEnabled(True)              # rapport.html absent du dossier de démonstration
+    v._contexte_btn.setEnabled(True)                 # hors QGIS de bureau, pas d'interface : actif pour la capture
+    # pas de traitement.json dans le dossier de démonstration : la ligne d'état posée à la main
+    v._contexte_etat.setText("Contexte moderne : 67 détections grisées, 148 avec une information · "
+                             "données de l'IGN lues le 12/11/2026")
+    v._contexte_etat.setVisible(True)
     for _ in range(5):                               # le cadre apparu relance la mise en page de la zone défilante
         app.processEvents()
     v.grab().save(str(img / "run-fin.png"))
@@ -415,14 +425,14 @@ def _etape6(app, w, img: Path, log) -> bool:
 
 
 def _consulter_flux(app, w, img: Path, log) -> bool:
-    """aide/img/consulter-les-flux.png : l'onglet sur un catalogue fictif (départements neutres,
+    """Contrôle de la page « Relief par zone » sur un catalogue fictif (départements neutres,
     vignettes du poste si présentes) — jamais le catalogue local, qui porte des zones de test."""
     from archeo.src.app.services.visu_catalogue import CatalogItem, Catalogue, Department
 
     tabs = getattr(w, "_tabs", None)
     visu = w._visu_tab
     if tabs is None or visu is None:
-        log("onglet Consulter les flux masqué (VISUALISATION_TAB_ENABLED faux, 0.18.1) : capture conservée, non refaite")
+        log("onglet Catalogue des flux masqué (VISUALISATION_TAB_ENABLED faux, 0.18.1) : capture conservée, non refaite")
         return True
     vignettes = RACINE / "data" / "local_catalogue" / "thumbs"
 
@@ -441,14 +451,170 @@ def _consulter_flux(app, w, img: Path, log) -> bool:
     visu._cat_stamp.setText("catalogue 2026-10")
     visu._refresh_rail()
     tabs.setCurrentIndex(1)
+    visu.montrer_page(1)                      # page « Relief par zone »
     for _ in range(6):
         app.processEvents()
-    w.grab().save(str(img / "consulter-les-flux.png"))
+    # Pas de capture : la page « Relief par zone » reste cachée dans le plugin publié et le manuel ne la décrit
+    # pas (2026-11-19). Le contrôle de la page, lui, reste.
     log("consulter les flux : départements", len(visu._catalogue.covered), "| vignettes :", vignettes.is_dir(),
         "| mur :", visu._wall_title.text())
+    relief_ok = len(visu._catalogue.covered) == 4 and visu._wall_title.text() == "Côte-d'Or"
+    # Les fonds de carte tels que les voit un poste livré : sans catalogue de flux, pas de barre de pages
+    # (2026-11-19 : la capture montrait « Relief par zone », absent du plugin publié).
+    barre = visu._page_btns[0].parentWidget()
+    barre.setVisible(False)
+    fonds_ok = _fonds_de_carte(app, w, visu, img, log)
+    barre.setVisible(True)
     tabs.setCurrentIndex(0)
     app.processEvents()
-    return len(visu._catalogue.covered) == 4 and visu._wall_title.text() == "Côte-d'Or"
+    return relief_ok and fonds_ok
+
+
+def _fiche_fond(app, w, visu, img: Path, log) -> bool:
+    """aide/img/fiche-fond.png : la fiche d'un fond dans sa fenêtre (bouton « i » de la ligne), avec
+    sa carte de couverture. Contrôle : chaque fond a une fiche complète et une couverture mesurée."""
+    from qgis.PyQt.QtWidgets import QLabel
+
+    from archeo.src.app.services import fonds_publics as fp
+    from archeo.src.ui.dialogs.class_info_dialog import FicheDialog
+    from archeo.src.ui.dialogs.fond_info_dialog import CarteCouverture
+
+    page = visu._fonds_page
+    recus = []
+    visu.fiche_fond_demandee.connect(lambda corps, titre: recus.append((corps, titre)))
+    page._lignes["cassini"].info.click()
+    app.processEvents()
+    if not recus:
+        log("fiche de fond : le bouton « i » n'a rien émis")
+        return False
+    corps, titre = recus[0]
+    dlg = FicheDialog(corps, titre, "IndiceInfoDialog", taille=(640, 900))
+    dlg.show()
+    dlg.resize(640, 900)
+    for _ in range(6):
+        app.processEvents()
+    dlg.grab().save(str(img / "fiche-fond.png"))
+    # Le feuilleteur construit la première fiche puis celle demandée : on ne contrôle que ce qui se voit.
+    textes = [x.text() for x in dlg.findChildren(QLabel) if x.isVisible()]
+    cartes = [c for c in dlg.findChildren(CarteCouverture) if c.isVisible()]
+    incomplete = any("Fiche incomplète" in t.title() or "FICHE INCOMPLÈTE" in t for t in textes)
+    racine = RACINE
+    fiches = fp.charger_fiches(racine / fp.FICHES)
+    couvertures = fp.charger_couvertures(racine / fp.COUVERTURE)
+    manques = {f.id: fiches[f.id].manques if f.id in fiches else ("absente",) for f in page._fonds
+               if f.id not in fiches or not fiches[f.id].est_complete}
+    log("fiche de fond :", titre, "| carte de couverture :", len(cartes), "| phrase :",
+        next((t for t in textes if "France métropolitaine" in t), "-")[:90], "| incomplète :", incomplete,
+        "| fiches manquantes ou incomplètes :", manques, "| couvertures :", len(couvertures), "/", len(page._fonds))
+    dlg.close()
+    return (len(cartes) == 1 and not incomplete and not manques and len(couvertures) == len(page._fonds))
+
+
+def _fonds_de_carte(app, w, visu, img: Path, log) -> bool:
+    """aide/img/fonds-de-carte.png + contrôle du geste : les fonds cochés arrivent décochés dans un
+    groupe mutuellement exclusif posé sous « Structures », les repères dans un groupe libre au-dessus,
+    dans l'ordre du catalogue, et « Tout retirer » ne laisse ni couche ni groupe."""
+    from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtWidgets import QFrame
+
+    from archeo.src.app.services import fonds_publics as fp
+
+    page = visu._fonds_page
+    visu.montrer_page(0)
+    # États « ici » d'un endroit type (Lorraine), sans réseau : c'est ce que la sonde écrirait.
+    aucun_coche = not page.coches() and not page._bouton.isEnabled()
+    for ident in ("etat_major", "photos_1950", "photos", "plan_ign", "cadastre", "batiments", "routes_chemins"):
+        page._lignes[ident].case.setChecked(True)
+    for _ in range(6):
+        app.processEvents()
+    w.grab().save(str(img / "fonds-de-carte.png"))
+    # La section des données vectorielles est sous la liste des images : seconde capture, défilée en bas.
+    from qgis.PyQt.QtWidgets import QScrollArea
+    defile = page.findChildren(QScrollArea)[0].verticalScrollBar()
+    # Les thèmes de données vectorielles sont repliés à l'ouverture : on déplie le premier qui porte des
+    # fonds du catalogue (« Bâti, routes et eau »), on replie les images, et on défile jusqu'à lui.
+    for bandeau, _ids in page._sections:
+        bandeau.ouvert = bandeau.theme == "Bâti, routes et eau"
+    page.appliquer()
+    for _ in range(4):
+        app.processEvents()
+    cible = next(b for b, _ids in page._sections if b.theme == "Bâti, routes et eau")
+    defile.setValue(min(defile.maximum(), cible.y()))
+    for _ in range(4):
+        app.processEvents()
+    w.grab().save(str(img / "objets-cliquables.png"))
+    defile.setValue(0)
+    coches = [f.id for f in page.coches()]
+    log("fonds de carte :", len(page._fonds), "lignes | aucun coché au départ :", aucun_coche, "|", len(coches), "cochés | bouton :", page._bouton.text(),
+        "| largeur page :", page.width(), "| plus large ligne :", max(x.sizeHint().width() for x in page._lignes.values()))
+
+    fiche_ok = _fiche_fond(app, w, visu, img, log)
+
+    projet = QgsProject.instance()
+    racine = projet.layerTreeRoot()
+    relief = QgsVectorLayer("Point?crs=EPSG:2154", "Dominance locale", "memory")
+    projet.addMapLayer(relief)
+    racine.insertGroup(0, "Structures")
+    ajoutes, deja = page.ajouter()
+    page._sur_ajout()                          # second clic : rien de plus, et la page le dit
+    ordre = [n.name() for n in racine.children()]
+    fonds = racine.findGroup(fp.GROUPE_FONDS)
+    reperes = racine.findGroup(fp.GROUPE_REPERES)
+    objets = racine.findGroup(fp.GROUPE_OBJETS)
+    noms = [n.name() for n in fonds.findLayers()] if fonds else []
+    attendus = [f.nom_couche for f in page._fonds if f.id in coches and not f.repere and not f.objets]
+    decoches = fonds is not None and not any(n.itemVisibilityChecked() for n in fonds.findLayers())
+    if fonds is not None and len(fonds.findLayers()) >= 2:
+        a, b = fonds.findLayers()[:2]
+        a.setItemVisibilityChecked(True)
+        b.setItemVisibilityChecked(True)
+        un_seul = (not a.itemVisibilityChecked()) and b.itemVisibilityChecked()
+    else:
+        un_seul = False
+    visu._sync_footer()
+    pied = visu._footer_state.text()
+    message = page._message.text()
+    log("ajout :", ajoutes, "ajoutés,", deja, "déjà là | arbre :", ordre, "| exclusif :", bool(fonds and fonds.isMutuallyExclusive()),
+        "| ordre du catalogue :", noms == attendus, "| tous décochés :", decoches, "| un seul visible :", un_seul,
+        "| repères :", [n.name() for n in reperes.findLayers()] if reperes else None, "| pied :", pied, "| message :", message)
+    from qgis.core import QgsLayerTreeModel
+
+    modele = QgsLayerTreeModel(racine)
+    # Une couche « wms » porte d'abord son nœud de légende distante (vide pour des tuiles directes),
+    # puis l'image posée par setLegendPlaceholderImage : c'est elle qu'on cherche.
+    legendes = {n.name(): any(type(x).__name__ == "QgsImageLegendNode" for x in modele.layerLegendNodes(n))
+                for g in (fonds, reperes, objets) for n in g.findLayers()}
+    replies = not any(n.isExpanded() for g in (fonds, reperes, objets) for n in g.findLayers())
+    log("légendes :", legendes, "| repliées :", replies)
+    bati = next((n.layer() for n in objets.findLayers() if n.layer().customProperty(fp.PROPRIETE) == "batiments"), None)
+    route = next((n.layer() for n in objets.findLayers() if n.layer().customProperty(fp.PROPRIETE) == "routes_chemins"), None)
+    objets_ok = (bati is not None and bati.providerType() == "WFS" and bati.hasScaleBasedVisibility()
+                 and int(bati.minimumScale()) == fp.ECHELLE_MIN_OBJETS and bati.displayExpression() == '"nature"'
+                 and bati.renderer().symbol().symbolLayer(0).brushStyle() == Qt.BrushStyle.NoBrush
+                 and route is not None and route.geometryType() == QgsWkbTypes.GeometryType.LineGeometry
+                 and not objets.isMutuallyExclusive())
+    log("vecteur bâtiments :", None if bati is None else (bati.providerType(), bati.isValid(), int(bati.minimumScale()),
+                                                          bati.displayExpression()), "| conforme :", objets_ok)
+    avec_legende = [f.nom_couche for f in page._fonds if f.id in coches and f.legende]
+    ok = (fiche_ok and objets_ok and aucun_coche and replies and all(legendes[n] for n in avec_legende)
+          and not any(v for n, v in legendes.items() if n not in avec_legende)
+          and ajoutes == len(coches) and deja == 0
+          and ordre[:4] == ["Structures", fp.GROUPE_OBJETS, fp.GROUPE_REPERES, fp.GROUPE_FONDS]
+          and fonds.isMutuallyExclusive() and not reperes.isMutuallyExclusive() and noms == attendus and decoches
+          and un_seul and "déjà" in message and f"{ajoutes} fonds de carte" in pied)
+    visu._remove_all()
+    reste = [n.name() for n in racine.children()]
+    log("après « Tout retirer » :", reste, "| fonds restants :", len(page.presents()))
+    ok = ok and reste == ["Structures", "Dominance locale"] and not page.presents()
+    sections = [w.property("sorte") for w in page.findChildren(QFrame) if w.objectName() == "FondSection"]
+    log("sections de la page :", sections)
+    # Un bandeau par thème : les thèmes d'images, puis ceux de données vectorielles (2026-11-12).
+    ok = ok and {"images", "objets"} == set(sections) and sections == sorted(sections)      # les images d'abord
+    projet.removeMapLayer(relief.id())
+    racine.removeChildNode(racine.findGroup("Structures"))
+    visu.montrer_page(1)
+    return ok
 
 
 def _etape4(app, w, img: Path, log) -> bool:
@@ -483,12 +649,15 @@ def _etape4(app, w, img: Path, log) -> bool:
     w.grab().save(str(img / "etape4-verifications.png"))
     statut = w._launch_page._preflight_status
     log("étape 4 : préflight =", statut, "| bouton :", w._next_btn.text(), "| actif :", w._next_btn.isEnabled())
+    if statut != "ok":      # dit quel contrôle bloque : le poste change, le rendu doit le nommer
+        log("étape 4 : contrôles en échec :", w._launch_page._pf_manquants, "| avertissements :",
+            w._launch_page._pf_avertissements)
     return statut == "ok" and w._next_btn.isEnabled()
 
 
 def captures(app, sortie: Path, log) -> int:
     """Étapes 1 à 4 et 6 de l'assistant, la fiche d'une classe, la vue d'exécution et l'onglet
-    « Consulter les flux » → aide/img/, chemins neutres, SVF + LD cochés, détection activée."""
+    « Catalogue des flux » → aide/img/, chemins neutres, SVF + LD cochés, détection activée."""
     from archeo.src.ui.wizard_dialog import WizardDialog
 
     img = RACINE / "aide" / "img"
@@ -512,6 +681,7 @@ def captures(app, sortie: Path, log) -> int:
 
     fichiers = _fichiers(w._config)
     if fichiers is not None:
+        fichiers["data_mode"] = "ign_laz"      # le scénario de démonstration, quel que soit le dernier mode utilisé sur le poste
         fichiers["input_file"] = "C:/Temp/archeologia_demo/dalles.txt"
         fichiers["output_dir"] = "C:/Temp/archeologia_demo/sortie"
         w._source_page.load_from(w._config)
@@ -892,7 +1062,10 @@ def main(argv=None) -> int:
         else:
             code = profil(app, args.sortie, log, args.modele)
     except Exception as exc:  # noqa: BLE001 — le .bat n'affiche rien : tout va dans le journal
+        import traceback
+
         log("ERREUR :", repr(exc))
+        log(traceback.format_exc())
         code = 2
     log("RESULTAT :", "OK" if code == 0 else f"ECHEC ({code})")
     app.exitQgis()

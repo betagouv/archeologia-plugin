@@ -118,3 +118,12 @@ def test_messages_rejoues_apres_reset():
     assert "class _TamponAvertJournal" not in vue and "class _TamponAvantJournal" in vue
     worker = vue[vue.index("def _worker("):vue.index("def _reset_view(")]
     assert worker.index("with file_logging(") < worker.index("self._rejouer_avant_journal()")
+
+
+def test_la_frise_ne_plante_pas_quand_la_resolution_est_inconnue():
+    """2026-11-17 : l'étape 4 levait « unsupported format string passed to NoneType » dès que la résolution
+    n'était pas connue (mode existant sans raster lisible) : la phrase « N m/pixel » était formatée avant
+    d'être écartée. Elle n'est plus écrite que si la résolution existe."""
+    assistant = (RACINE / "src/ui/wizard_dialog.py").read_text(encoding="utf-8")
+    assert '([f"{nombre(res, 2)} m/pixel"] if res else []) + rvt_tags' in assistant
+    assert '[f"{nombre(res, 2)} m/pixel"] * bool(res)' not in assistant

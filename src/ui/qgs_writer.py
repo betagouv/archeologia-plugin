@@ -43,10 +43,16 @@ _ALIASES = {
     "model_name": "modele_detection",
     "fiabilite": "fiabilité",
     "fiabilite_pct": "fiabilité mesurée au banc (%)",
+    "contexte_moderne": "contexte moderne",
+    "contexte_info": "contexte (information)",
+    "contexte_dist_m": "distance au contexte (m)",
+    "contexte_part": "part recouverte (%)",
+    "contexte_source": "source du contexte",
 }
 # Champs en lecture seule dans le formulaire (les autres — validation, corr_pred — éditables).
 _READONLY = ("model_pred", "model_name", "confidence", "conf_bin", "conf_color",
-             "fiabilite", "fiabilite_pct")
+             "fiabilite", "fiabilite_pct", "contexte_moderne", "contexte_info", "contexte_dist_m",
+             "contexte_part", "contexte_source")
 
 
 def _add_rasters(
@@ -155,7 +161,8 @@ def _apply_validation_form(layer, all_classes: List[str], logger: logging.Logger
                 pass
             corr_box.addChildElement(QgsAttributeEditorField("corr_pred", ci, corr_box))
             container.addChildElement(corr_box)
-        for name in ("fiabilite", "fiabilite_pct", "confidence", "conf_bin", "conf_color"):
+        for name in ("fiabilite", "fiabilite_pct", "confidence", "conf_bin", "conf_color",
+                     "contexte_moderne", "contexte_info", "contexte_dist_m", "contexte_part", "contexte_source"):
             _add(name)
         root_c.addChildElement(container)
 

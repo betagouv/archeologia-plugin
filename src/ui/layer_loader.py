@@ -147,7 +147,8 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     from ..app.services.fiabilite import maptip_html, texte_resume
 
     modele = str(entree.get("modele") or "")
-    resume = texte_resume(modele, str(entree.get("classe") or layer.name()), cats,
+    # Libellé de la couche (« Charbonnières »), jamais l'identifiant de classe (2026-11-18).
+    resume = texte_resume(modele, layer.name() or str(entree.get("classe") or ""), cats,
                           str(entree.get("provenance") or ""))
     try:
         md = layer.metadata()
@@ -165,7 +166,7 @@ def _apply_fiabilite_notices(layer, entree, cats, logger: logging.Logger) -> Non
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Résumé de couche non écrit: {e}")
     try:
-        layer.setMapTipTemplate(maptip_html(cats, modele))
+        layer.setMapTipTemplate(maptip_html(cats, modele, structure=layer.name()))
     except Exception as e:  # noqa: BLE001
         logger.debug(f"Infobulle de détection non écrite: {e}")
 
@@ -205,6 +206,40 @@ def _parse_gpkg_source(shp_path_str: str):
             else layer_name
         )
     return _gpkg, layer_name, class_name
+
+
+def _ajouter_contexte_moderne(layer, logger) -> None:
+    """Catégorie grise « Contexte moderne » (2026-11-11) : le rendu catégorisé déjà posé (fiabilité
+    ou tranches de confiance) passe sur une expression qui renvoie « Contexte moderne » quand le champ
+    ``contexte_moderne`` est rempli, sinon la valeur d'origine. Le champ ``fiabilite`` n'est jamais
+    réécrit : bilan, rapport et fiabilité observée en dépendent. Couche sans le champ (traitement
+    antérieur, option coupée) : rien ne change, une expression sur un champ absent masquerait tout."""
+    try:
+        from qgis.core import QgsCategorizedSymbolRenderer, QgsFillSymbol, QgsRendererCategory
+
+        from ..app.services.contexte_moderne import (
+            CATEGORIE_LEGENDE, COULEUR_LEGENDE, est_lineaire, expression_legende,
+        )
+
+        if layer.fields().indexFromName("contexte_moderne") < 0:
+            return
+        # Sans le modèle d'une comparaison A/B (« Charbonnières — Structures linéaires… », 2026-11-18).
+        if est_lineaire(layer.name().split(" — ")[0]):
+            return          # une structure linéaire n'est jamais écartée : pas de catégorie grise vide
+        renderer = layer.renderer()
+        if not isinstance(renderer, QgsCategorizedSymbolRenderer):
+            return
+        if any(c.value() == CATEGORIE_LEGENDE for c in renderer.categories()):
+            return
+        renderer.setClassAttribute(expression_legende(renderer.classAttribute()))
+        symbole = QgsFillSymbol.createSimple({"color": "0,0,0,0", "outline_color": COULEUR_LEGENDE,
+                                              "outline_width": "0.5", "outline_style": "dash"})
+        categorie = QgsRendererCategory(CATEGORIE_LEGENDE, symbole, CATEGORIE_LEGENDE)
+        categorie.setRenderState(False)   # décochée à l'ouverture, comme « possible » et « douteux »
+        renderer.addCategory(categorie)
+        layer.triggerRepaint()
+    except Exception as e:  # noqa: BLE001 — la légende d'origine reste
+        logger.warning(f"Catégorie « Contexte moderne » non ajoutée : {e}")
 
 
 def build_detection_vector_layer(
@@ -255,6 +290,7 @@ def build_detection_vector_layer(
             _apply_fiabilite_notices(layer, entree, cats, logger)
         else:
             _apply_confidence_style(layer, base_color, confidence_threshold, logger)
+    _ajouter_contexte_moderne(layer, logger)
     _apply_verdict_form(layer)
     return layer
 
@@ -667,6 +703,79 @@ def purge_output_dir_layers(output_dir, logger: logging.Logger) -> int:
     except Exception as e:  # noqa: BLE001 — purge best-effort, jamais bloquante
         logger.warning(f"Purge des couches périmées impossible: {e}")
         return 0
+
+
+def detacher_couches_du_dossier(output_dir, logger: logging.Logger) -> list:
+    """Au lancement d'un traitement, **détache** de leur fichier les couches du projet qui lisent le dossier de
+    sortie, sans les retirer (demande de l'utilisateur, 2026-11-12 : lancer un traitement ne doit fermer aucune
+    couche ouverte, qu'elle vienne d'un traitement ou qu'il l'ait ouverte lui-même). La couche reste dans
+    l'arbre, à sa place, cochée ou non, avec son style ; elle est simplement indisponible le temps du calcul.
+
+    Le détachement est nécessaire : QGIS garde ouverts le VRT et le GeoPackage d'une couche chargée, Windows
+    verrouille alors le fichier et le traitement ne peut pas le réécrire (mesuré : ``PermissionError`` couche
+    ouverte, fichier libre couche détachée, sous QGIS 3.44 et 4.0.3) ; et QGIS réécrirait son VRT périmé
+    par-dessus le nouveau. Les couches visées sont celles de ``select_layers_to_purge`` (par chemin, jamais par
+    nom). Rend ``[(id, source, nom, fournisseur), …]`` pour :func:`rattacher_couches`. Thread principal."""
+    try:
+        from qgis.core import QgsProject
+
+        from ..app.services.layer_purge import select_layers_to_purge
+
+        if not output_dir:
+            return []
+        project = QgsProject.instance()
+        couches = project.mapLayers()
+        detachees = []
+        for lid in select_layers_to_purge({i: c.source() for i, c in couches.items()}, str(output_dir)):
+            couche = couches[lid]
+            detachees.append((lid, couche.source(), couche.name(), couche.providerType()))
+            couche.setDataSource("", couche.name(), couche.providerType())      # libère le fichier, garde le style
+        if detachees:
+            logger.info(f"{len(detachees)} couche(s) du dossier de sortie mise(s) en attente le temps du "
+                        "traitement ; elles seront rebranchées à la fin.")
+        return detachees
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        logger.warning(f"Mise en attente des couches du dossier de sortie impossible: {e}")
+        return []
+
+
+def rattacher_couches(detachees, logger: logging.Logger) -> tuple:
+    """Rebranche à la fin du traitement (réussi, annulé ou en erreur) les couches de
+    :func:`detacher_couches_du_dossier` sur leur fichier, relu à neuf. Une couche que l'utilisateur a retirée
+    entre-temps est ignorée ; une couche dont le fichier n'existe plus (structure qui n'est plus produite) est
+    retirée, et son groupe s'il reste vide. Rend ``(rebranchées, retirées)``. Thread principal."""
+    try:
+        import os
+
+        from qgis.core import QgsProject
+
+        from ..app.services.layer_purge import _strip_decoration
+
+        project = QgsProject.instance()
+        rebranchees, perdues = 0, []
+        for lid, source, nom, fournisseur in detachees or []:
+            couche = project.mapLayer(lid)
+            if couche is None:
+                continue
+            if not os.path.exists(_strip_decoration(source)):
+                perdues.append(lid)
+                continue
+            couche.setDataSource(source, nom, fournisseur)
+            if couche.isValid():
+                couche.triggerRepaint()
+                rebranchees += 1
+            else:
+                perdues.append(lid)
+        if perdues:
+            project.removeMapLayers(perdues)
+            _retirer_groupes_vides(project)
+        if rebranchees or perdues:
+            logger.info(f"{rebranchees} couche(s) rebranchée(s) sur le dossier de sortie"
+                        + (f", {len(perdues)} retirée(s) (fichier disparu)." if perdues else "."))
+        return rebranchees, len(perdues)
+    except Exception as e:  # noqa: BLE001 — jamais bloquant
+        logger.warning(f"Rebranchement des couches impossible: {e}")
+        return 0, 0
 
 
 def _deferred_zoom(loaded_layers, project, logger) -> None:

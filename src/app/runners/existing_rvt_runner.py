@@ -284,6 +284,7 @@ class ExistingRvtRunner:
                 extra_label="Images traitées",
                 ui_config=ctx.ui_config,
                 outcome=outcome,
+                cancel_check=cancel.is_cancelled,
                 crs=crs,
             )
 

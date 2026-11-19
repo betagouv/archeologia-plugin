@@ -51,6 +51,9 @@ le dépôt est déposé par l'utilisateur (FTP), le runbook s'arrête au ZIP et 
    `dev/rendu_hors_ecran.py profil --modele <id>` (fiche de classe et fiche de modèle : profil des
    scores, bandeau « Appris sur ») — un `ECHEC` est une image qui déborde ou un écran cassé, à corriger
    avant le bump. Le chapitre Nouveautés se remplit tout seul depuis le changelog.
+   Enfin `dev/controle_livrable.py <dossier>` sous les deux QGIS, sur au moins un traitement **fait
+   avec la version livrée** et comportant des détections (`D:/pipeline_results/…`) : un `KO` est une
+   couche qui n'affiche pas ce que ses données contiennent, à corriger avant le bump.
 5. **Binaire CV** : `python run_tests.py -k binaire_a_jour` doit être **vert**. Rouge →
    `python dev/runner_onnx/build.py` (venv dans `dev/runner_onnx/.venv_onnx`), puis smoke run de
    l'exe sur un PNG avec un modèle installé. Un test rouge au moment d'une livraison n'est jamais hors

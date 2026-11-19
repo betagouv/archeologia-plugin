@@ -430,6 +430,7 @@ class IgnOrLocalRunner:
                 coverage_threshold_percent=processing.coverage_threshold_percent,
                 ui_config=ctx.ui_config,
                 outcome=outcome,
+                cancel_check=cancel.is_cancelled,
                 pdal_version=version_pdal(),
                 fusion=fusion_mode(),
             )

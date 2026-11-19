@@ -58,7 +58,7 @@ class SourcePage(QWidget):
         self._tile_tool = None
         self._grid_layer = None
         self._prev_map_tool = None
-        self._geometrie_avant_carte = None   # géométrie de l'assistant avant le choix sur la carte (H-02)
+        self._masquee_pour_la_carte = False   # l'assistant est masqué le temps du choix sur la carte
         self._msg_item = None
         self._validate_btn = None
         # Bandeau persistant « zoomez pour voir les dalles » + canevas connecté à
@@ -525,19 +525,18 @@ class SourcePage(QWidget):
         self._refresh_scale_notice()
 
         self._dalles_btn.setEnabled(False)
-        # Dégager le canevas SANS réduire l'assistant (H-02, 2026-10-24) : la fenêtre
-        # garde sa géométrie, se resserre à sa largeur minimale et se range contre le
-        # bord droit de l'écran ; elle reprend sa place à la fin. NE PAS utiliser
-        # lower() : sur Windows, abaisser une fenêtre possédée par QGIS minimise QGIS.
+        # Dégager le canevas en MASQUANT l'assistant (2026-11-12) : sa taille et sa place ne
+        # changent plus (l'ancien resserrement contre le bord droit, H-02, les modifiait) ; une
+        # barrette flottante dit qu'il attend, la barre de message de QGIS porte le compte et
+        # « Valider ». NE PAS utiliser lower() ni la réduire : sur Windows, abaisser une
+        # fenêtre possédée par QGIS minimise QGIS, et la réduire laisse une barre minuscule.
         try:
             win = self.window()
-            self._geometrie_avant_carte = win.geometry()
-            ecran = win.screen().availableGeometry()
-            largeur = max(win.minimumWidth(), win.minimumSizeHint().width())
-            win.setGeometry(ecran.right() - largeur - 8, win.y(), largeur, win.height())
-            win.raise_()
+            if hasattr(win, "masquer_vers_barrette"):
+                win.masquer_vers_barrette("Choix des dalles sur la carte")
+                self._masquee_pour_la_carte = True
         except Exception:
-            self._geometrie_avant_carte = None
+            self._masquee_pour_la_carte = False
 
     def _preselectionner_depuis_le_champ(self, layer) -> None:
         """Sélectionne sur la grille les dalles de la liste ``.txt`` du champ (celle de la carte ou une liste
@@ -784,12 +783,12 @@ class SourcePage(QWidget):
         # Ne ré-activer le bouton que hors lecture seule (run en cours).
         if not self._source_edit.isReadOnly():
             self._dalles_btn.setEnabled(True)
-        # Rendre à l'assistant sa place et sa largeur d'avant le choix sur la carte.
+        # Remontrer l'assistant, tel qu'il était, à la fin du choix sur la carte.
         try:
             win = self.window()
-            if getattr(self, "_geometrie_avant_carte", None) is not None:
-                win.setGeometry(self._geometrie_avant_carte)
-                self._geometrie_avant_carte = None
+            if getattr(self, "_masquee_pour_la_carte", False):
+                self._masquee_pour_la_carte = False
+                win.show()
             win.raise_()
             win.activateWindow()
         except Exception:

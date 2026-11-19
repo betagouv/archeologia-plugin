@@ -100,7 +100,7 @@ def test_finalize_ecrit_le_bilan_et_le_narre(tmp_path, monkeypatch):
     meta = json.loads((tmp_path / "livrable" / "traitement.json").read_text(encoding="utf-8"))
     assert meta["bilan_fiabilite"] == [{
         "slug": "parcellaire", "label": "Parcellaire", "couche": "parcellaire", "classe": "parcellaire",
-        "modele": "M", "total": 7, "effectifs": {"quasi_certain": 2, "douteux": 5},
+        "modele": "M", "total": 7, "effectifs": {"quasi_certain": 2, "douteux": 5}, "ecartees": 0,
     }]
     i = next(k for k, m in enumerate(r.users) if "Bilan de fiabilité" in m)
     assert r.users[i + 1] == "   • Parcellaire : 7 détections — 2 très probables, 5 douteuses"
@@ -126,9 +126,9 @@ def test_la_vue_et_le_widget_sont_branches():
     assert "teinte_niveau" in widget and "couleur_de_classe" in widget   # mêmes teintes que la légende
 
 
-def test_texte_sous_barre():
-    """Sous chaque barre, les effectifs par niveau en toutes lettres : le bilan se lit sans la
-    couleur (2026-10-24), du plus sûr au plus douteux, au masculin singulier de la légende."""
+def test_le_bilan_se_lit_sans_la_couleur():
+    """Les effectifs par niveau en toutes lettres (rapport, journal) ; à l'écran, depuis le 2026-11-12, un
+    tableau : une colonne de chiffres par niveau, l'en-tête pour légende, des barres en parts."""
     cats = tuple(Categorie(**c) for c in CATS)
     ligne = LigneBilan("p", "Parcellaire", "parcellaire", "parcellaire", "m", cats,
                        {"quasi_certain": 1200, "probable": 80, "douteux": 12})
@@ -136,4 +136,49 @@ def test_texte_sous_barre():
     assert texte_niveaux_effectifs({"douteux": 3, "quasi_certain": 0, "possible": 5}) == "possible 5 · douteux 3"
     assert texte_niveaux_effectifs({}) == ""
     widget = (Path(__file__).resolve().parents[2] / "src/ui/widgets/bilan_fiabilite.py").read_text(encoding="utf-8")
-    assert "texte_niveaux(" in widget and "_RANGEE = 34" in widget
+    assert "def _colonnes(" in widget and "LIBELLE_ECARTEES" in widget and "_TOTAL" in widget
+    assert "maximum = max(" not in widget              # plus de barre à l'échelle de la structure la plus fournie
+
+
+# ── 2026-11-12 : le bilan montre à part les détections grisées par le contexte moderne ───────────────────────
+def test_les_ecartees_sont_sorties_de_leur_niveau_et_dites_a_part(tmp_path):
+    from app.services.bilan_fiabilite import collecter, texte_niveaux
+
+    det = tmp_path / "detections"
+    _sidecar(det, "enclos", {"Enclos": {"classe": "enclos", "categories": CATS,
+                                        "effectifs": {"Très probable": 10, "Douteux": 6},
+                                        "ecartes": {"Très probable": 3, "Douteux": 6}}})
+    (ligne,) = collecter(det)
+    assert ligne.total == 16 and ligne.n_ecartees == 9
+    assert dict(ligne.par_niveau()) == {"quasi_certain": 7, "douteux": 0}
+    assert texte_niveaux(ligne) == "très probable 7 · contexte moderne 9"
+    assert ligne.phrase() == "enclos : 16 détections — 7 très probables, 9 en contexte moderne"
+    assert ligne.to_dict()["ecartees"] == 9
+
+
+def test_sans_croisement_le_bilan_ne_change_pas(tmp_path):
+    from app.services.bilan_fiabilite import collecter, texte_niveaux
+
+    det = tmp_path / "detections"
+    _sidecar(det, "enclos", {"Enclos": {"classe": "enclos", "categories": CATS, "effectifs": {"Probable": 4}}})
+    (ligne,) = collecter(det)
+    assert ligne.n_ecartees == 0 and texte_niveaux(ligne) == "probable 4"
+
+
+def test_recompter_ecartes_lit_le_geopackage(tmp_path):
+    import sqlite3
+
+    from app.services.fiabilite import recompter_ecartes, sidecar_path
+
+    gpkg = tmp_path / "enclos.gpkg"
+    con = sqlite3.connect(gpkg)
+    con.execute("CREATE TABLE gpkg_contents (table_name TEXT, data_type TEXT)")
+    con.execute("INSERT INTO gpkg_contents VALUES ('Enclos', 'features')")
+    con.execute('CREATE TABLE "Enclos" (fid INTEGER PRIMARY KEY, fiabilite TEXT, contexte_moderne TEXT)')
+    con.executemany('INSERT INTO "Enclos" (fiabilite, contexte_moderne) VALUES (?, ?)',
+                    [("Probable", "bâtiment à 2 m"), ("Probable", None), ("Douteux", "sur un rond-point"), ("Douteux", "")])
+    con.commit()
+    con.close()
+    sidecar_path(gpkg).write_text(json.dumps({"Enclos": {"effectifs": {"Probable": 2, "Douteux": 2}}}), encoding="utf-8")
+    recompter_ecartes(gpkg)
+    assert json.loads(sidecar_path(gpkg).read_text(encoding="utf-8"))["Enclos"]["ecartes"] == {"Probable": 1, "Douteux": 1}
