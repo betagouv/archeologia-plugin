@@ -35,6 +35,13 @@ COURS_EAU, HABITATION, ROND_POINT = "cours_eau", "habitation", "rond_point"
 #: Données croisées avec les seules structures ponctuelles. Les lieux-dits en sont sortis le 2026-11-18
 #: (décision de l'utilisateur) : une étiquette de carte, qui informait sans rien apprendre.
 SOURCES_PONCTUELLES = (COURS_EAU, HABITATION, ROND_POINT)
+#: Données croisées avec les seules structures **linéaires** (2026-11-19, décision de l'utilisateur) : elles
+#: n'excluent jamais, elles disent qu'un talus ou un chemin creux longe un objet moderne déjà recensé.
+ROUTE, VOIE_FERREE, TALUS_IGN, CANALISATION = "route", "voie_ferree", "talus_ign", "canalisation"
+SOURCES_LINEAIRES = (ROUTE, VOIE_FERREE, TALUS_IGN, CANALISATION)
+#: Les lignes dont on mesure, sous une structure linéaire, la part de la détection qui les longe (le cours
+#: d'eau sert les deux familles : il informe les ponctuelles à 15 m, il « longe » les linéaires).
+LIGNES_LONGEES = SOURCES_LINEAIRES + (COURS_EAU,)
 
 #: Les cinq champs écrits sur chaque détection, dans cet ordre.
 CHAMPS = ("contexte_moderne", "contexte_info", "contexte_dist_m", "contexte_part", "contexte_source")
@@ -54,8 +61,13 @@ RAYON_COURS_EAU = 15.0     # un cours d'eau qui traverse ou longe la détection
 #: Part de la détection à partir de laquelle elle est « sur » un rond-point (exclue) ou dite « dans » une
 #: zone d'habitation (phrase seulement).
 PART_DEDANS = 0.5
+#: Linéaires (2026-11-19) : part de la détection à moins de :data:`RAYON_LINEAIRE` m de la ligne (son axe,
+#: dans la BD TOPO), à partir de laquelle on dit qu'elle la « longe ». Mesure en surface, qui vaut la part
+#: de longueur pour une détection allongée. Calibrage : ``D:/brouillons/galerie_regles_2026-11-19``.
+RAYON_LINEAIRE = 6.0
+PART_LONGE = 0.3
 #: Rayon de recherche des objets autour d'une détection : le plus grand des rayons ci-dessus.
-RAYON_RECHERCHE = max(RAYON_BATIMENT, RAYON_EAU, RAYON_INFO, RAYON_COURS_EAU)
+RAYON_RECHERCHE = max(RAYON_BATIMENT, RAYON_EAU, RAYON_INFO, RAYON_COURS_EAU, RAYON_LINEAIRE)
 #: En deçà, l'objet touche la détection : on écrit « recouvrant N % de la détection » ou « touchant la
 #: détection », jamais « à 0 m ».
 CONTACT_M = 0.5
@@ -111,6 +123,17 @@ def est_depression(structure: str) -> bool:
     return "depression" in s or "dépression" in s
 
 
+def consulte(source: str, structure: str) -> bool:
+    """La donnée ``source`` est-elle croisée avec cette structure ? Les linéaires reçoivent les leurs et le
+    cours d'eau ; les ponctuelles, les leurs ; le bâti et l'eau servent tout le monde."""
+    lineaire = est_lineaire(structure)
+    if source in SOURCES_LINEAIRES:
+        return lineaire
+    if source in SOURCES_PONCTUELLES:
+        return not lineaire or source == COURS_EAU
+    return True
+
+
 def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
     """``(effet, rayon en m)`` de l'objet pour cette structure, ou ``None`` s'il n'en a pas.
 
@@ -119,6 +142,12 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
     2026-11-12) : un plan d'eau aménagé informe une **dépression** sans l'exclure ; une structure
     **linéaire** n'est jamais exclue (:func:`effet`)."""
     a = objet.attributs
+    if objet.source in LIGNES_LONGEES and est_lineaire(structure):
+        if objet.source == COURS_EAU and _txt(a, "nature").startswith(_TRONCONS_DE_SURFACE):
+            return None
+        return (INFORMER, RAYON_LINEAIRE) if objet.part >= PART_LONGE else None
+    if objet.source in SOURCES_LINEAIRES:
+        return None
     if objet.source in SOURCES_PONCTUELLES:
         if est_lineaire(structure):
             return None
@@ -268,9 +297,40 @@ def _phrase_ponctuelle(objet: Objet) -> str:
     return f"dans la {nom}" if objet.part >= PART_DEDANS else f"{nom} {_ou(objet)}"
 
 
-def phrase(objet: Objet) -> str:
+#: Ce que longe une structure linéaire, avec son article (BD TOPO 3.5 : natures des tronçons de route, des
+#: lignes orographiques et des tronçons hydrographiques).
+_LONGES = {
+    ROUTE: {"Chemin": "un chemin", "Sentier": "un sentier", "Route empierrée": "une route empierrée",
+            "Escalier": "un escalier", "Piste cyclable": "une piste cyclable", "": "une route"},
+    TALUS_IGN: {"Talus": "un talus recensé par l'IGN", "Levée": "une levée recensée par l'IGN",
+                "Carrière": "un front de carrière recensé par l'IGN", "": "une ligne de relief recensée par l'IGN"},
+    COURS_EAU: {"Ecoulement canalisé": "un cours d'eau canalisé", "Conduit buse": "un cours d'eau busé",
+                "Conduit forcé": "une conduite forcée", "Canal": "un canal", "Aqueduc": "un aqueduc",
+                "": "un cours d'eau"},
+}
+
+
+def _phrase_longe(objet: Objet) -> str:
+    """« longe un chemin sur 80 % de sa longueur »."""
+    a = objet.attributs
+    if objet.source == VOIE_FERREE:
+        nom = "une voie ferrée"
+    elif objet.source == CANALISATION:
+        nom = "une canalisation"
+    else:
+        noms = _LONGES[objet.source]
+        nom = noms.get(_txt(a, "nature"), noms[""])
+    if objet.source == COURS_EAU:
+        nom = _nomme(nom, _txt(a, "cpx_toponyme_de_cours_d_eau"))
+    return f"longe {nom} sur {round(max(0.0, min(1.0, objet.part)) * 100)} % de sa longueur"
+
+
+def phrase(objet: Objet, structure: str = "") -> str:
     """« étang (retenue) recouvrant 80 % de la détection », « bâtiment agricole à 3 m »,
-    « mare à 6 m (origine naturelle) », « cours d'eau traversant la détection »."""
+    « mare à 6 m (origine naturelle) », « cours d'eau traversant la détection », et pour une structure
+    linéaire « longe un chemin sur 80 % de sa longueur »."""
+    if objet.source in LIGNES_LONGEES and est_lineaire(structure):
+        return _phrase_longe(objet)
     if objet.source in SOURCES_PONCTUELLES:
         return _phrase_ponctuelle(objet)
     a = objet.attributs
@@ -306,8 +366,8 @@ def champs(objets: Iterable[Objet], structure: str = "", source: str = "",
     else:
         libelle = source
     return {
-        "contexte_moderne": " ; ".join(phrase(o) for o in exclus) or None,
-        "contexte_info": " ; ".join(phrase(o) for o in infos) or None,
+        "contexte_moderne": " ; ".join(phrase(o, structure) for o in exclus) or None,
+        "contexte_info": " ; ".join(phrase(o, structure) for o in infos) or None,
         "contexte_dist_m": None if decide is None else int(round(decide.distance_m)),
         "contexte_part": None if decide is None else int(round(max(0.0, min(1.0, decide.part)) * 100)),
         "contexte_source": libelle or None,

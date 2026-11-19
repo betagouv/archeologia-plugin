@@ -94,7 +94,7 @@ def test_url_filtree_l_emprise_passe_dans_le_filtre():
     u = cc.url_page("BDTOPO_V3:troncon_de_route", (0, 0, 10000, 10000), 0, filtre="nature='Rond-point'")
     assert "&BBOX=" not in u and "CQL_FILTER=nature%3D%27Rond-point%27%20AND%20BBOX%28geometrie%2C0%2C0%2C10000%2C10000" in u
     assert cc.FILTRES == {cm.ROND_POINT: "nature='Rond-point'"}
-    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES}
+    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES, *cm.SOURCES_LINEAIRES}
 
 
 def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():
@@ -155,3 +155,26 @@ def test_croiser_garde_l_ordre_et_tolere_les_geometries_vides_ou_invalides():
 
 def test_croiser_sans_aucun_objet():
     assert cc.croiser([box(0, 0, 1, 1)], {}, "enclos", "s")[0]["contexte_source"] == "s"
+
+
+# ── 2026-11-19 : les linéaires longent routes, voies ferrées, cours d'eau, talus de l'IGN, canalisations ─────
+def test_un_chemin_creux_qui_longe_une_route_coupee_en_deux_troncons():
+    from shapely.geometry import LineString
+
+    troncons = {cm.ROUTE: [objet(LineString([(0, 0), (50, 0)]), nature="Chemin"),
+                           objet(LineString([(50, 0), (100, 0)]), nature="Chemin")]}
+    long_de_la_route = box(0, -2, 100, 2)                    # 4 m de large, 100 m le long du chemin
+    (c,) = cc.croiser([long_de_la_route], troncons, "chemins_creux", "s")
+    assert c["contexte_info"] == "longe un chemin sur 100 % de sa longueur" and c["contexte_moderne"] is None
+    # un parcellaire qui ne fait que traverser la route n'est pas dit la longer
+    (x,) = cc.croiser([box(48, -50, 52, 50)], troncons, "parcellaire", "s")
+    assert x["contexte_info"] is None
+
+
+def test_les_lignes_longees_ne_servent_que_les_lineaires():
+    from shapely.geometry import LineString
+
+    route = {cm.ROUTE: [objet(LineString([(0, 0), (100, 0)]), nature="Route à 1 chaussée")]}
+    assert cc.croiser([box(0, -2, 100, 2)], route, "charbonnieres", "s")[0]["contexte_info"] is None
+    assert cc.croiser([box(0, -2, 100, 2)], route, "talus_et_fosses", "s")[0]["contexte_info"] == \
+        "longe une route sur 100 % de sa longueur"

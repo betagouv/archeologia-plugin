@@ -303,7 +303,7 @@ def test_le_contexte_moderne_ajoute_les_donnees_que_cite_le_croisement():
     assert cochees == {"ctx_ronds_points", "batiments", "ctx_reservoirs", "ctx_cimetieres", "surfaces_en_eau",
                        "cours_eau", "zones_habitation", "monuments_historiques",
                        "ctx_cavites", "ctx_mouvements_terrain"}
-    assert len(ids) == 31
+    assert len(ids) == 32                  # + talus de l'IGN (linéaires, 2026-11-19)
     # Géorisques a son propre service ; tout le reste vient de la Géoplateforme.
     for _g, fond, _v in couches:
         georisques = fond.typename.startswith("ms:")
@@ -314,7 +314,8 @@ def test_le_contexte_moderne_ajoute_les_donnees_que_cite_le_croisement():
 def test_le_contexte_moderne_est_range_par_famille_comme_dans_les_essais():
     couches = fp.couches_contexte(list(PAR_ID.values()))
     familles = list(dict.fromkeys(g for g, _f, _v in couches))
-    assert familles == ["Routes et transports", "Bâti et constructions", "Hydrographie", "Énergie et réseaux",
+    assert familles == ["Routes et transports", "Bâti et constructions", "Hydrographie", "Relief recensé par l'IGN",
+                        "Énergie et réseaux",
                         "Parcellaire et toponymie", "IGN complément", "Géorisques (BRGM)", "Patrimoine"]
     for _g, fond, _v in couches:
         assert fond.nom_couche == fond.titre                 # pas d'époque devant le nom

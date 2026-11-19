@@ -36,13 +36,30 @@ COUCHES = {
                    ("nature", "origine", "persistance", "cpx_toponyme_de_cours_d_eau")),
     cm.HABITATION: ("BDTOPO_V3:zone_d_habitation", ("nature", "toponyme")),
     cm.ROND_POINT: ("BDTOPO_V3:troncon_de_route", ("nature",)),
+    # linéaires (2026-11-19) : ce qu'un talus ou un chemin creux peut longer
+    cm.ROUTE: ("BDTOPO_V3:troncon_de_route", ("nature",)),
+    cm.VOIE_FERREE: ("BDTOPO_V3:troncon_de_voie_ferree", ("nature",)),
+    cm.TALUS_IGN: ("BDTOPO_V3:ligne_orographique", ("nature",)),
+    cm.CANALISATION: ("BDTOPO_V3:canalisation", ("nature",)),
 }
+#: Données dont une panne ne compromet pas le croisement (2026-11-19) : elles ne font qu'informer, ou viennent
+#: d'un autre service ; leur absence est dite au journal et le reste est écrit. Les cinq premières données,
+#: elles, décident des exclusions : sans elles, rien n'est écrit (comme avant).
+FACULTATIVES = frozenset({cm.ROUTE, cm.VOIE_FERREE, cm.TALUS_IGN, cm.CANALISATION})
+#: Service WFS d'une donnée qui n'est pas sur la Géoplateforme.
+SERVICES: Dict[str, str] = {}
+#: Emprise (Lambert-93) d'une donnée régionale : hors d'elle, on ne la demande pas.
+EMPRISES: Dict[str, Tuple[float, float, float, float]] = {}
+#: Filtre appliqué sur le poste : ``(champ, valeurs gardées)`` (le service rend tout, l'emprise est petite).
+FILTRES_LOCAUX: Dict[str, Tuple[str, frozenset]] = {}
 #: Filtre côté serveur : on ne télécharge pas toutes les routes pour n'en garder que les ronds-points.
 FILTRES = {cm.ROND_POINT: "nature='Rond-point'"}
 #: La donnée du Catalogue des flux qui correspond à chaque source : son titre est écrit dans
 #: ``contexte_source``, pour que l'utilisateur la retrouve et l'ajoute au projet.
 ID_CATALOGUE = {cm.BATIMENT: "batiments", cm.EAU: "surfaces_en_eau", cm.COURS_EAU: "cours_eau",
-                cm.HABITATION: "zones_habitation", cm.ROND_POINT: "ctx_ronds_points"}
+                cm.HABITATION: "zones_habitation", cm.ROND_POINT: "ctx_ronds_points",
+                cm.ROUTE: "routes_chemins", cm.VOIE_FERREE: "ctx_voies_ferrees", cm.TALUS_IGN: "ctx_talus_ign",
+                cm.CANALISATION: "ctx_canalisations"}
 CELLULE_M = 10_000.0
 PAGE = 5000
 
@@ -79,7 +96,9 @@ def url_page(typename: str, bbox: Bbox, debut: int, service: str = SERVICE_WFS, 
     # au mètre près, vers l'extérieur : une boîte serrée ne doit rien perdre à l'arrondi
     x0, y0, x1, y1 = math.floor(bbox[0]), math.floor(bbox[1]), math.ceil(bbox[2]), math.ceil(bbox[3])
     tete = (f"{service}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES={typename}"
-            f"&OUTPUTFORMAT=application/json&SRSNAME=EPSG:2154&COUNT={page}&STARTINDEX={debut}&SORTBY=cleabs")
+            f"&OUTPUTFORMAT=application/json&SRSNAME=EPSG:2154&COUNT={page}&STARTINDEX={debut}"
+            # le tri stabilise la pagination ; seule la BD TOPO a ``cleabs``
+            + ("&SORTBY=cleabs" if typename.startswith("BDTOPO") else ""))
     if filtre:
         from urllib.parse import quote
 
@@ -111,18 +130,25 @@ def telecharger(source: str, carres: Sequence[Bbox], lire_json: Callable[[str], 
         raise AssertionError("inatteignable")
 
     typename, gardes = COUCHES[source]
+    service = SERVICES.get(source, SERVICE_WFS)
+    emprise = EMPRISES.get(source)
+    champ, valeurs = FILTRES_LOCAUX.get(source, ("", frozenset()))
     vus, objets = set(), []
     for carre in carres:
+        if emprise and (carre[2] < emprise[0] or carre[0] > emprise[2] or carre[3] < emprise[1] or carre[1] > emprise[3]):
+            continue
         debut = 0
         while True:
             if annule():
                 return objets
-            page = page_lue(url_page(typename, carre, debut, filtre=FILTRES.get(source, "")))
+            page = page_lue(url_page(typename, carre, debut, service, filtre=FILTRES.get(source, "")))
             entites = page.get("features") or []
             for f in entites:
                 props = f.get("properties") or {}
                 cle = props.get("cleabs") or f.get("id")
                 if cle in vus or not f.get("geometry"):
+                    continue
+                if champ and str(props.get(champ)) not in valeurs:
                     continue
                 vus.add(cle)
                 objets.append({"geometry": f["geometry"], "properties": {k: props.get(k) for k in gardes}})
@@ -144,8 +170,9 @@ def croiser(detections: Sequence[Any], objets_par_source: Mapping[str, Sequence[
     from shapely.strtree import STRtree
 
     geoms, meta, anneaux = [], [], []
+    lineaire = cm.est_lineaire(structure)
     for nom, objets in objets_par_source.items():
-        if nom in cm.SOURCES_PONCTUELLES and cm.est_lineaire(structure):
+        if not cm.consulte(nom, structure):
             continue
         for o in objets:
             try:
@@ -168,9 +195,11 @@ def croiser(detections: Sequence[Any], objets_par_source: Mapping[str, Sequence[
             geoms.append(disque)
             meta.append((cm.ROND_POINT, {"nature": "Rond-point"}))
     arbre = STRtree(geoms) if geoms else None
+    bandes: Dict[int, Any] = {}             # bande de RAYON_LINEAIRE autour d'une ligne longée, calculée une fois
     sortie = []
     for det in detections:
         proches: List[cm.Objet] = []
+        longees: Dict[str, list] = {}
         if arbre is not None and det is not None and not det.is_empty:
             d = det if det.is_valid else det.buffer(0)
             aire = d.area or 0.0
@@ -179,8 +208,23 @@ def croiser(detections: Sequence[Any], objets_par_source: Mapping[str, Sequence[
                 distance = d.distance(g)
                 if distance > cm.RAYON_RECHERCHE:
                     continue
+                nom = meta[int(k)][0]
+                if lineaire and nom in cm.LIGNES_LONGEES:
+                    # part qui longe la ligne : dans une bande de RAYON_LINEAIRE autour d'elle, tous les tronçons
+                    # d'une même donnée réunis (une route est découpée à chaque carrefour)
+                    bande = bandes.get(int(k))
+                    if bande is None:
+                        bande = bandes[int(k)] = g.buffer(cm.RAYON_LINEAIRE)
+                    longees.setdefault(nom, []).append((d.intersection(bande).area, distance, int(k), bande))
+                    continue
                 part = (d.intersection(g).area / aire) if (aire and distance == 0) else 0.0
-                proches.append(cm.Objet(meta[int(k)][0], meta[int(k)][1], distance, part))
+                proches.append(cm.Objet(nom, meta[int(k)][1], distance, part))
+            for nom, liste in longees.items():
+                from shapely.ops import unary_union
+
+                principal = max(liste, key=lambda x: (x[0], -x[1]))   # ses attributs nomment la ligne
+                part = d.intersection(unary_union([x[3] for x in liste])).area / aire if aire else 0.0
+                proches.append(cm.Objet(nom, meta[principal[2]][1], min(x[1] for x in liste), part))
         sortie.append(cm.champs(proches, structure, source, titres, date_iso))
     return sortie
 

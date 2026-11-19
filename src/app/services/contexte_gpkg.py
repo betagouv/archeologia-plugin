@@ -144,7 +144,9 @@ def _structure(det_dir: Path, gpkg: Path, couche: str) -> str:
 
 #: Repli si le catalogue livré est illisible ; un test vérifie qu'ils sont ceux du catalogue.
 TITRES_PAR_DEFAUT = {cm.BATIMENT: "Bâtiments", cm.EAU: "Surfaces en eau et mares", cm.COURS_EAU: "Cours d'eau",
-                     cm.HABITATION: "Zones d'habitation", cm.ROND_POINT: "Ronds-points"}
+                     cm.HABITATION: "Zones d'habitation", cm.ROND_POINT: "Ronds-points",
+                     cm.ROUTE: "Routes et chemins", cm.VOIE_FERREE: "Voies ferrées",
+                     cm.TALUS_IGN: "Talus, levées et fronts de carrière", cm.CANALISATION: "Canalisations"}
 
 
 def titres_catalogue() -> Dict[str, str]:
@@ -163,8 +165,7 @@ def titres_catalogue() -> Dict[str, str]:
 
 
 #: Couche du GeoPackage local (= source du croisement) par fond du bouton « Ajouter le contexte moderne ».
-COUCHE_PAR_FOND = {"batiments": cm.BATIMENT, "surfaces_en_eau": cm.EAU, "cours_eau": cm.COURS_EAU,
-                   "zones_habitation": cm.HABITATION, "ctx_ronds_points": cm.ROND_POINT}
+COUCHE_PAR_FOND = {fond: source for source, fond in cc.ID_CATALOGUE.items()}
 
 
 def chemin_contexte(det_dir: Path) -> Path:
@@ -223,25 +224,36 @@ def marquer(det_dir: Path, lire_json: Callable[[str], Mapping], *, crs: str = "E
         return Bilan()
     emprises = [g.bounds for _g, _c, _f, geoms in lues for g in geoms if g is not None and not g.is_empty]
     carres = cc.cellules(emprises)
-    journal(f"Contexte moderne : lecture de la BD TOPO de l'IGN (bâtiments, eau, cours d'eau, zones d'habitation, "
-            f"ronds-points) autour des détections ({len(carres)} requête{'s' if len(carres) > 1 else ''} par donnée)…")
-    try:
-        objets = {source: cc.telecharger(source, carres, lire_json, annule) for source in cc.COUCHES}
-    except Exception as exc:                       # noqa: BLE001 — réseau : jamais d'échec du traitement
-        return Bilan(motif=f"Contexte moderne non vérifié : la BD TOPO de l'IGN est injoignable ({type(exc).__name__}).")
+    structures = {_structure(det_dir, gpkg, couche) for gpkg, couche, _f, _g in lues}
+    # seulement les données qu'au moins une structure du traitement consulte (pas de route sans linéaire)
+    voulues = [s for s in cc.COUCHES if any(cm.consulte(s, st) for st in structures)]
+    titres = titres_catalogue()
+    noms = ", ".join(titres[s][:1].lower() + titres[s][1:] for s in voulues)
+    journal(f"Contexte moderne : lecture de la BD TOPO de l'IGN autour des détections ({noms} ; "
+            f"{len(carres)} requête{'s' if len(carres) > 1 else ''} par donnée)…")
+    objets = {}
+    for source in voulues:
+        try:
+            objets[source] = cc.telecharger(source, carres, lire_json, annule)
+        except Exception as exc:                   # noqa: BLE001 — réseau : jamais d'échec du traitement
+            if source not in cc.FACULTATIVES:
+                return Bilan(motif=f"Contexte moderne non vérifié : la BD TOPO de l'IGN est injoignable "
+                                   f"({type(exc).__name__}).")
+            objets[source] = []
+            journal(f"Contexte moderne : « {titres[source]} » non consultée, le service ne répond pas "
+                    f"({type(exc).__name__}) ; le reste du croisement est fait.")
     if annule():
         return Bilan(motif="Contexte moderne non vérifié : traitement annulé.")
     try:
         garder_objets(det_dir, objets)
     except Exception as exc:                       # noqa: BLE001 — fichier verrouillé, disque : le marquage continue
         journal(f"Contexte moderne : données non enregistrées dans le dossier du traitement ({type(exc).__name__}).")
-    jour =aujourd_hui or date.today().isoformat()
-    titres = titres_catalogue()
-    bilan = Bilan(source=cm.libelle_source(jour, list(dict.fromkeys(titres.values()))))
+    jour = aujourd_hui or date.today().isoformat()
+    bilan = Bilan(source=cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in voulues))))
     for gpkg, couche, fids, geoms in lues:
         structure = _structure(det_dir, gpkg, couche)
         # « rien à proximité » nomme les données consultées pour cette structure
-        consultees = [s for s in cc.COUCHES if not (s in cm.SOURCES_PONCTUELLES and cm.est_lineaire(structure))]
+        consultees = [s for s in voulues if cm.consulte(s, structure)]
         source = cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in consultees)))
         valeurs = cc.croiser(geoms, objets, structure, source, titres, jour)
         ecrire_champs(gpkg, couche, fids, valeurs)

@@ -63,6 +63,11 @@ CONTEXTE_MODERNE = (
         ("ctx_details_hydro", "Détails hydrographiques (sources, fontaines, lavoirs)",
          _T + "detail_hydrographique", "point", "nature", "", False),
     )),
+    # Ce que le croisement des linéaires consulte (2026-11-19) : talus et levées que l'IGN a déjà relevés.
+    ("Relief recensé par l'IGN", "#8c510a", (
+        ("ctx_talus_ign", "Talus, levées et fronts de carrière", _T + "ligne_orographique", "ligne", "nature", "",
+         False),
+    )),
     ("Énergie et réseaux", "#7b3294", (
         ("ctx_lignes_electriques", "Lignes électriques", _T + "ligne_electrique", "ligne", "", "", False),
         ("ctx_pylones", "Pylônes", _T + "pylone", "point", "", "", False),

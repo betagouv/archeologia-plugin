@@ -364,3 +364,22 @@ def test_ligne_etat_dit_pourquoi_le_croisement_n_est_pas_fait():
     motif = "Contexte moderne non vérifié : la BD TOPO de l'IGN est injoignable (OSError)."
     assert cm.ligne_etat({"total": 0, "motif": motif}) == motif
     assert cm.ligne_etat(None) == "" and cm.ligne_etat({}) == "" and cm.ligne_etat({"total": 0}) == ""
+
+
+def test_les_linéaires_longent_mais_ne_sont_jamais_ecartes():
+    for source, attributs, attendu in (
+            (cm.ROUTE, {"nature": "Chemin"}, "longe un chemin sur 80 % de sa longueur"),
+            (cm.VOIE_FERREE, {"nature": "Voie ferrée principale"}, "longe une voie ferrée sur 80 % de sa longueur"),
+            (cm.TALUS_IGN, {"nature": "Talus"}, "longe un talus recensé par l'IGN sur 80 % de sa longueur"),
+            (cm.CANALISATION, {"nature": "Eau"}, "longe une canalisation sur 80 % de sa longueur"),
+            (cm.COURS_EAU, {"nature": "Ecoulement naturel"}, "longe un cours d'eau sur 80 % de sa longueur")):
+        c = cm.champs([cm.Objet(source, attributs, 0.0, 0.8)], "talus_et_fosses", "s")
+        assert c["contexte_info"] == attendu and c["contexte_moderne"] is None, source
+    # sous le seuil, une ligne qui croise ou effleure ne dit rien
+    assert cm.champs([cm.Objet(cm.ROUTE, {}, 0.0, cm.PART_LONGE - 0.01)], "parcellaire", "s")["contexte_info"] is None
+
+
+def test_qui_consulte_quoi():
+    assert cm.consulte(cm.ROUTE, "chemins_creux") and not cm.consulte(cm.ROUTE, "charbonnieres")
+    assert cm.consulte(cm.COURS_EAU, "chemins_creux") and cm.consulte(cm.COURS_EAU, "charbonnieres")
+    assert not cm.consulte(cm.ROND_POINT, "parcellaire") and cm.consulte(cm.BATIMENT, "parcellaire")

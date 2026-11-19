@@ -1417,3 +1417,9 @@ Automatique : `python-qgis.bat dev/rendu_hors_ecran.py arbre` sous les deux QGIS
 Automatique : `tests/unit/test_fusion_fragment_fenetre.py` (cas réel de la dalle 0995_6747) et `test_binaire_a_jour` (binaire recompilé). En séance, structures ponctuelles sur la dalle 0995_6747 :
 - [ ] **82.1 Charbonnière à la coupure** (vers x = 1 709–1 748 px de l'image, y ≈ 635–673) : une seule boîte, qui couvre l'objet entier (≈ 39 px de côté, confiance ≈ 0,53) au lieu de sa moitié droite (21 px, 0,64).
 - [ ] **82.2 Relance dans un dossier existant** : le journal annonce la purge du cache (moteur changé) et la ré-inférence des images.
+
+## 83. Contexte moderne, suite : emprise, linéaires, patrimoine, exclusions à calibrer (2026-11-19) ⭐ P1
+
+Automatique : `tests/unit/test_contexte_croisement.py`, `test_contexte_moderne.py`, `test_contexte_gpkg.py` ; mesures et galerie dans `D:/brouillons/galerie_regles_2026-11-19`. En séance, sur un traitement avec des structures linéaires (talus, chemins creux, parcellaire) et des ponctuelles :
+- [ ] **83.1 Emprise** : le journal dit « lecture de la BD TOPO de l'IGN … autour des détections (… ; N requêtes par donnée) » ; `livrable/contexte/contexte_moderne.gpkg` ne contient que des objets proches des détections (quelques centaines de ko sur une zone de quelques km², au lieu de dizaines de Mo).
+- [ ] **83.2 Linéaires** : un chemin creux sous un chemin de l'IGN porte « longe un chemin sur N % de sa longueur » dans `contexte_info`, jamais dans `contexte_moderne` ; un parcellaire qui croise une route n'en dit rien ; « Ajouter le contexte moderne » ajoute Routes et chemins, Voies ferrées, Talus, levées et fronts de carrière, Canalisations quand ils ont servi.
