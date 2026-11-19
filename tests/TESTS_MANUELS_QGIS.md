@@ -1281,3 +1281,10 @@ Lot 3 du chantier d'accélération (2026-10-15) : une dalle lue en entier reçoi
 - [ ] **74.2 Journal** : « N GeoPackage(s) d'une relance précédente remplacé(s) » une fois par modèle concerné.
 - [ ] **74.3 Structure non relancée** : décocher une structure présente dans le dossier → son GeoPackage et sa couche restent tels quels.
 - [ ] **74.4 Verdicts** : des verdicts saisis dans une structure relancée sont perdus (le manuel le dit, § Relancer dans le même dossier) ; ceux d'une structure non relancée restent.
+
+## 75. MNT existants : marge des indices = plus grand rayon demandé (coutures du MSTP, 2026-11-18) ⭐ P1
+
+Automatique : `tests/unit/test_mstp_coutures.py` et le banc `D:/brouillons/mstp_coutures_2026-11-18/banc.py` (rapport jointure / intérieur ≈ 1). En séance, mode MNT existants sur 4 dalles d'1 km jointives, MSTP coché :
+- [ ] **75.1** Réglage par défaut : aucune ligne droite aux jointures sur l'image MSTP (rouge = échelle large) ; le journal dit « Marge inter-dalles de 200,5 m pour les indices… 50 m gardés pour la détection ».
+- [ ] **75.2** Échelle large max 1 000 m : pas de couture ; si la mémoire manque, la dalle est signalée en échec au journal (relancer avec moins de calculs simultanés).
+- [ ] **75.3** Détection cochée en plus : les images de la détection (technique/png) gardent la taille dalle + 50 m.
