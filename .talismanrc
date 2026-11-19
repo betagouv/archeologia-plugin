@@ -418,7 +418,7 @@ fileignoreconfig:
 - filename: src/pipeline/ign/coords_fallback.py
   checksum: b1997408c2011b138fc5ffc525a10fa88a37848ffa763f355892b9d5dd0c1450
 - filename: src/pipeline/ign/downloader.py
-  checksum: c1c65de72ee16ba19f953c361edfa284a73c07a4a03b4855ca62ec1ee87b287e
+  checksum: 3e9b3d74856a35df02f9b4ac3952f6ddb2d5f8cfb67d638b766c82750613c84b
 - filename: src/pipeline/ign/pdal_validation.py
   checksum: 2b4ed1d8b7ed8b47c769214f73f1898b79a26b2fdddfea938b003423488462af
 - filename: src/pipeline/ign/preprocess.py
