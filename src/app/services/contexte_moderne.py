@@ -58,7 +58,10 @@ SOURCES_A_CALIBRER = (RESERVOIR, EPURATION, TERRAIN_SPORT, PARKING)
 #: Celles dont l'exclusion est **activée**, après jugement de leur galerie par l'utilisateur (2026-11-19,
 #: D:/brouillons/galerie_regles_2026-11-19 : « tous les cas écartés dans les exemples me semblent bons »).
 #: Une source absente d'ici informe seulement (« parking recouvrant 40 % de la détection »).
-EXCLUSIONS_ACTIVES: frozenset = frozenset({EPURATION, RESERVOIR, TERRAIN_SPORT})
+EXCLUSIONS_ACTIVES: frozenset = frozenset({EPURATION, RESERVOIR, TERRAIN_SPORT, PARKING})
+#: Attribut posé par le croisement sur un objet à calibrer qui n'est qu'un carré symbolique de l'IGN (5 × 5 m,
+#: emprise non dessinée) : il informe dans :data:`RAYON_INFO` et n'écarte jamais (parkings, 2026-11-19).
+SYMBOLE = "_symbole"
 #: Celles qui sont des zones : la détection est « dans » la zone, plutôt qu'« à N m ».
 ZONES_PATRIMOINE = (PLU_ZONE, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
 
@@ -182,6 +185,8 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
     if objet.source in SOURCES_A_CALIBRER:
         if est_lineaire(structure):
             return None
+        if a.get(SYMBOLE):
+            return INFORMER, RAYON_INFO
         exclut = objet.source in EXCLUSIONS_ACTIVES and objet.part >= PART_EXCLUSION
         return (EXCLURE if exclut else INFORMER), 0.0       # au contact : à côté, il ne dit rien
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
@@ -377,6 +382,7 @@ _NOMS_A_CALIBRER = {
                     "Carrière équestre": "carrière équestre", "": "terrain de sport"},
     PARKING: {"": "parking"},
 }
+_FEMININS = frozenset({"station d'épuration", "déchèterie", "carrière équestre", "piste de sport"})
 _ZPPA = "zone de présomption de prescription archéologique"
 
 
@@ -409,7 +415,12 @@ def phrase(objet: Objet, structure: str = "") -> str:
         return _phrase_patrimoine(objet)
     if objet.source in SOURCES_A_CALIBRER:
         noms = _NOMS_A_CALIBRER[objet.source]
-        return f"{noms.get(_txt(objet.attributs, 'nature'), noms[''])} {_ou(objet)}"
+        nom = noms.get(_txt(objet.attributs, "nature"), noms[""])
+        if objet.attributs.get(SYMBOLE):
+            e = "e" if nom in _FEMININS else ""
+            ou = "touchant la détection" if objet.distance_m < CONTACT_M else f"à {round(objet.distance_m)} m"
+            return f"{nom} signalé{e} {ou} (emprise non dessinée par l'IGN)"
+        return f"{nom} {_ou(objet)}"
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
         return _phrase_longe(objet)
     if objet.source in SOURCES_PONCTUELLES:

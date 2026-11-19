@@ -195,3 +195,28 @@ def test_filtre_sur_le_poste_et_service_regional_hors_de_sa_region():
     assert cc.telecharger(cm.ZPPA_BRETAGNE, [(980000, 6860000, 990000, 6870000)], faux) == [] and len(appels) == 1
     assert cc.telecharger(cm.ZPPA_BRETAGNE, [(350000, 6780000, 351000, 6781000)], faux)
     assert appels[-1].startswith("https://geobretagne.fr/geoserver/drac/ows?")
+
+
+# ── 2026-11-19 : les carrés symboliques de 5 m de l'IGN n'écartent jamais ───────────────────────────────────
+def test_un_parking_symbolique_informe_un_vrai_parking_ecarte():
+    """Là où l'IGN n'a pas dessiné l'emprise, un parking (ou une station d'épuration) est un carré EXACT de
+    5 × 5 m (247 parkings sur 686 dans le corpus, aucun vrai contour sous 91 m²) : il dit qu'il y a quelque
+    chose, pas où. Il informe sans jamais écarter ; un vrai contour écarte à 10 %."""
+    charbonniere = Point(102, 102).buffer(4)                         # ≈ 50 m², à moitié sous le carré
+    symbole = {cm.PARKING: [objet(box(100, 100, 105, 105), nature="Parking")]}
+    (c,) = cc.croiser([charbonniere], symbole, "charbonnieres", "s")
+    assert c["contexte_moderne"] is None
+    assert c["contexte_info"] == "parking signalé touchant la détection (emprise non dessinée par l'IGN)"
+    pres = cc.croiser([Point(115, 102).buffer(4)], symbole, "charbonnieres", "s")[0]
+    assert pres["contexte_info"] == "parking signalé à 6 m (emprise non dessinée par l'IGN)"
+    assert cc.croiser([Point(130, 102).buffer(4)], symbole, "charbonnieres", "s")[0]["contexte_info"] is None
+    vrai = {cm.PARKING: [objet(box(90, 90, 130, 115), nature="Parking")]}
+    assert cc.croiser([charbonniere], vrai, "charbonnieres", "s")[0]["contexte_moderne"] == \
+        "parking recouvrant 100 % de la détection"
+
+
+def test_seul_un_carre_de_5_m_est_un_symbole():
+    assert cc.est_symbole(box(0, 0, 5, 5)) and cc.est_symbole(box(0, 0, 5.05, 5.05))
+    assert not cc.est_symbole(box(0, 0, 2.3, 2.3))           # une vraie petite cuve (réservoir du corpus)
+    assert not cc.est_symbole(box(0, 0, 5, 8)) and not cc.est_symbole(box(0, 0, 9, 9))
+    assert not cc.est_symbole(Point(0, 0).buffer(2.8))       # ≈ 25 m² mais rond : un vrai contour

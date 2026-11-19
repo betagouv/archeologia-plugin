@@ -138,6 +138,25 @@ def url_page(typename: str, bbox: Bbox, debut: int, service: str = SERVICE_WFS, 
 ESSAIS_PAGE = 3
 
 
+#: Côté du carré symbolique de l'IGN (BD TOPO) : un objet dont l'emprise n'a pas été dessinée est un carré
+#: EXACT de 5 × 5 m posé à son emplacement (2026-11-19, corpus du poste : 247 parkings sur 686, 11 stations
+#: d'épuration ou déchèteries sur 128, 1 terrain de sport ; aucun vrai contour de ces données sous 88 m² ;
+#: le seul petit carré de réservoir fait 2,3 m, une vraie cuve). Tolérance de 10 cm sur chaque côté.
+COTE_SYMBOLE_M, TOLERANCE_SYMBOLE_M = 5.0, 0.1
+
+
+def est_symbole(g: Any) -> bool:
+    """Vrai pour un carré de :data:`COTE_SYMBOLE_M` m : quatre côtés de cette longueur, sans trou."""
+    if g.geom_type == "MultiPolygon" and len(g.geoms) == 1:
+        g = g.geoms[0]
+    if g.geom_type != "Polygon" or g.interiors:
+        return False
+    c = list(g.exterior.coords)
+    if len(c) != 5:
+        return False
+    return all(abs(math.dist(c[i], c[i + 1]) - COTE_SYMBOLE_M) <= TOLERANCE_SYMBOLE_M for i in range(4))
+
+
 def dans_emprise(source: str, boite: Bbox) -> bool:
     """Faux pour une donnée régionale (:data:`EMPRISES`) dont l'emprise ne touche pas la boîte."""
     e = EMPRISES.get(source)
@@ -219,8 +238,11 @@ def croiser(detections: Sequence[Any], objets_par_source: Mapping[str, Sequence[
                 continue
             if not g.is_valid:
                 g = g.buffer(0)
+            props = o.get("properties") or {}
+            if nom in cm.SOURCES_A_CALIBRER and est_symbole(g):
+                props = {**props, cm.SYMBOLE: True}       # un emplacement, pas une emprise : n'écarte jamais
             geoms.append(g)
-            meta.append((nom, o.get("properties") or {}))
+            meta.append((nom, props))
     if anneaux:
         from shapely.ops import polygonize, unary_union
 
