@@ -197,22 +197,25 @@ def test_filtre_sur_le_poste_et_service_regional_hors_de_sa_region():
     assert appels[-1].startswith("https://geobretagne.fr/geoserver/drac/ows?")
 
 
-# ── 2026-11-19 : les carrés symboliques de 5 m de l'IGN n'écartent jamais ───────────────────────────────────
-def test_un_parking_symbolique_informe_un_vrai_parking_ecarte():
+# ── 2026-11-19 : un carré symbolique de 5 m de l'IGN compte comme un point ──────────────────────────────────
+def test_un_parking_symbolique_compte_comme_un_point():
     """Là où l'IGN n'a pas dessiné l'emprise, un parking (ou une station d'épuration) est un carré EXACT de
-    5 × 5 m (247 parkings sur 686 dans le corpus, aucun vrai contour sous 91 m²) : il dit qu'il y a quelque
-    chose, pas où. Il informe sans jamais écarter ; un vrai contour écarte à 10 %."""
-    charbonniere = Point(102, 102).buffer(4)                         # ≈ 50 m², à moitié sous le carré
-    symbole = {cm.PARKING: [objet(box(100, 100, 105, 105), nature="Parking")]}
-    (c,) = cc.croiser([charbonniere], symbole, "charbonnieres", "s")
-    assert c["contexte_moderne"] is None
-    assert c["contexte_info"] == "parking signalé touchant la détection (emprise non dessinée par l'IGN)"
-    pres = cc.croiser([Point(115, 102).buffer(4)], symbole, "charbonnieres", "s")[0]
-    assert pres["contexte_info"] == "parking signalé à 6 m (emprise non dessinée par l'IGN)"
+    5 × 5 m (247 parkings sur 686 dans le corpus). Décision de l'utilisateur : ce carré est un point, son
+    centre. Le point DANS la détection l'écarte ; à côté, jusqu'à 15 m, il informe ; un vrai contour écarte
+    à 10 %."""
+    symbole = {cm.PARKING: [objet(box(100, 100, 105, 105), nature="Parking")]}      # centre (102,5 ; 102,5)
+    (dedans,) = cc.croiser([Point(102, 102).buffer(4)], symbole, "charbonnieres", "s")
+    assert dedans["contexte_moderne"] == "parking signalé dans la détection (emprise non dessinée par l'IGN)"
+    touche = cc.croiser([Point(108, 102).buffer(4)], symbole, "charbonnieres", "s")[0]   # touche le carré, pas son centre
+    assert touche["contexte_moderne"] is None
+    assert touche["contexte_info"] == "parking signalé à 2 m (emprise non dessinée par l'IGN)"
+    pres = cc.croiser([Point(114.5, 102).buffer(4)], symbole, "charbonnieres", "s")[0]
+    assert pres["contexte_info"] == "parking signalé à 8 m (emprise non dessinée par l'IGN)"
     assert cc.croiser([Point(130, 102).buffer(4)], symbole, "charbonnieres", "s")[0]["contexte_info"] is None
     vrai = {cm.PARKING: [objet(box(90, 90, 130, 115), nature="Parking")]}
-    assert cc.croiser([charbonniere], vrai, "charbonnieres", "s")[0]["contexte_moderne"] == \
-        "parking recouvrant 100 % de la détection"
+    assert cc.croiser([Point(102, 102).buffer(4)], vrai, "charbonnieres", "s")[0]["contexte_moderne"] ==         "parking recouvrant 100 % de la détection"
+    # une structure linéaire n'est jamais écartée, symbole ou non
+    assert cc.croiser([Point(102, 102).buffer(4)], symbole, "parcellaire", "s")[0]["contexte_moderne"] is None
 
 
 def test_seul_un_carre_de_5_m_est_un_symbole():

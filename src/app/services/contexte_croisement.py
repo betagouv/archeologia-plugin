@@ -240,7 +240,9 @@ def croiser(detections: Sequence[Any], objets_par_source: Mapping[str, Sequence[
                 g = g.buffer(0)
             props = o.get("properties") or {}
             if nom in cm.SOURCES_A_CALIBRER and est_symbole(g):
-                props = {**props, cm.SYMBOLE: True}       # un emplacement, pas une emprise : n'écarte jamais
+                # un emplacement, pas une emprise : compté comme un point, son centre (décision du 2026-11-19)
+                props = {**props, cm.SYMBOLE: True}
+                g = g.centroid
             geoms.append(g)
             meta.append((nom, props))
     if anneaux:
