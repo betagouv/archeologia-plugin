@@ -8,9 +8,9 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from ..coords import extract_xy_from_filename, get_raster_bounds, infer_xy_from_file
 
 try:  # fallback standalone (tests : src/ sur le path)
-    from ...app.services.rvt_kernel_context import raster_context_warnings, tiled_context_warnings
+    from ...app.services.rvt_kernel_context import marge_requise_m, raster_context_warnings, tiled_context_warnings
 except ImportError:  # pragma: no cover
-    from app.services.rvt_kernel_context import raster_context_warnings, tiled_context_warnings
+    from app.services.rvt_kernel_context import marge_requise_m, raster_context_warnings, tiled_context_warnings
 from ..subprocess_utils import run_subprocess_cancellable
 from ..ign.products.crop import copy_products_without_crop, crop_final_products
 from ..ign.products.indices import create_visualization_products
@@ -159,15 +159,16 @@ def _motif_petite_emprise(
         return f"{taille} non alignée sur la grille de 1 km"
     return f"{taille}, plus petite qu'une dalle de 1 km"
 
-def _bilan_marge(etendues: int, sans_voisine: int, seuls: int) -> str:
+def _bilan_marge(etendues: int, sans_voisine: int, seuls: int, marge_m: float = DEFAULT_HALO_MARGIN_M) -> str:
     """Ligne de bilan de la marge inter-dalles, sur TOUT le lot (point 33, 2026-11-02 : « 0 dalle(s) étendue(s)
-    …, 1 sans voisin » taisait les 33 fenêtres hors grille). Vide si aucun MNT n'a été traité."""
+    …, 1 sans voisin » taisait les 33 fenêtres hors grille). Vide si aucun MNT n'a été traité. ``marge_m`` : la
+    marge de calcul des indices (2026-11-18)."""
     def n(k: int, un: str, plusieurs: str) -> str:
         return f"{k} {un if k == 1 else plusieurs}"
 
     parts = []
     if etendues:
-        m = f"de {DEFAULT_HALO_MARGIN_M:g} m depuis"
+        m = f"de {marge_m:g} m depuis"
         parts.append(n(etendues, f"dalle étendue {m} ses voisines", f"dalles étendues {m} leurs voisines"))
     if sans_voisine:
         parts.append(n(sans_voisine, "dalle de 1 km sans voisine", "dalles de 1 km sans voisine"))
@@ -296,6 +297,34 @@ def _materialiser_mnt_avec_marge(
         return False
     sidecar.write_text(json.dumps(attendu), encoding="utf-8")
     return True
+
+
+def _ramener_au_halo(temp_dir: Path, tile: str, products: Dict[str, bool], rvt_params: Dict[str, Any],
+                     fenetre: Tuple[float, float, float, float], log: LogFn) -> None:
+    """Intermédiaires d'une dalle calculée sur une marge plus large que le halo de la détection (2026-11-18 : la
+    marge suit le plus grand rayon des indices) ramenés à « dalle + halo » : la détection lit ces fichiers, ses
+    images et son cache restent ceux d'une marge de 50 m. Les valeurs, calculées sur la grande marge, sont justes."""
+    import os
+
+    from osgeo import gdal
+
+    from ..ign.products.rvt_naming import get_rvt_temp_filename
+
+    x0, y0, x1, y1 = fenetre
+    for produit, voulu in (products or {}).items():
+        if not voulu or produit in ("MNT", "DENSITE", "COUVERTURE"):
+            continue
+        tif = temp_dir / get_rvt_temp_filename(produit, tile, rvt_params)
+        b = get_raster_bounds(tif) if tif.is_file() else None
+        if b is None or (b[0] >= x0 - 1e-6 and b[1] >= y0 - 1e-6 and b[2] <= x1 + 1e-6 and b[3] <= y1 + 1e-6):
+            continue   # absent, ou déjà à la taille du halo (dalle réutilisée)
+        tmp = tif.with_name(tif.stem + ".halo.tif")
+        try:
+            gdal.Translate(str(tmp), str(tif), projWin=[x0, y1, x1, y0])
+            os.replace(tmp, tif)
+        except Exception as exc:  # noqa: BLE001 — la détection lira alors l'image entière, juste mais plus grande
+            tmp.unlink(missing_ok=True)
+            log(f"Intermédiaire {tif.name} non ramené au halo de la détection ({exc})")
 
 
 def _process_single_mnt_tile(
@@ -444,6 +473,13 @@ def run_existing_mnt(
     # Halo des indices (audit Fable 2026-11-02, P2) : emprises lues une fois ; dalles STANDARD étendues / seules.
     tiles = {p: b for p in mnt_files if (b := get_raster_bounds(p)) is not None}
     marge_dalles = {"etendues": 0, "sans_voisin": 0, "seuls": 0}
+    # Marge de CALCUL des indices (2026-11-18, coutures du MSTP en Bretagne) : le plus grand rayon des indices
+    # demandés, au moins le halo de la détection. Fixe à 50 m, elle cousait déjà le MSTP par défaut (échelle large
+    # 200 m). Les intermédiaires sont ensuite ramenés au halo (_ramener_au_halo) : la détection ne change pas.
+    marge_calcul = max(DEFAULT_HALO_MARGIN_M, marge_requise_m(products, rvt_params))
+    if marge_calcul > DEFAULT_HALO_MARGIN_M:
+        log(f"Marge inter-dalles de {marge_calcul:g} m pour les indices (plus grand rayon demandé), "
+            f"{DEFAULT_HALO_MARGIN_M:g} m gardés pour la détection")
     from ..batch import process_items_isolated
 
     def _process_one_mnt(idx: int, mnt_path: Path) -> None:
@@ -484,17 +520,17 @@ def run_existing_mnt(
             log(f"MNT {mnt_path.name}: emprise inconnue → layout par défaut 'standard'")
 
         # 1 bis) Le raster est-il assez large pour les noyaux RVT demandés ?
-        #    Une dalle STANDARD avec voisines reçoit une marge de DEFAULT_HALO_MARGIN_M (P2) : seul un noyau
-        #    plus large que cette marge coud encore (tiled_context_warnings, 5 % de 1 km = 50 m). Sans voisine
+        #    Une dalle STANDARD avec voisines reçoit la marge de calcul (le plus grand rayon demandé, 2026-11-18) :
+        #    seul un noyau au-delà de ce que tiled_context_warnings sait fournir (999 m) coud encore. Sans voisine
         #    (SMALL, LARGE, dalle isolée), au-delà du bord RVT replie l'emprise sur elle-même : sur un petit MNT
         #    face à un grand noyau, le produit est majoritairement fabriqué et AUCUNE couture ne le signale
         #    (échec silencieux, cf. app.services.rvt_kernel_context). Dédoublonné : un lot de rasters de même
         #    taille ne doit pas répéter 100 fois la même ligne.
         avec_voisines = layout == "standard" and bool(
-            _voisines_utiles(mnt_path, tiles, _marge_au_pixel(spec, DEFAULT_HALO_MARGIN_M))[0])
+            _voisines_utiles(mnt_path, tiles, _marge_au_pixel(spec, marge_calcul))[0])
         if spec is not None:
             if avec_voisines:
-                messages = tiled_context_warnings(products, rvt_params, tile_overlap_percent=5.0,
+                messages = tiled_context_warnings(products, rvt_params, tile_overlap_percent=marge_calcul / 10.0,
                                                   mnt_resolution=abs(float(spec.pixel_size_x)) or 0.5)
             else:
                 messages = raster_context_warnings(
@@ -573,9 +609,10 @@ def run_existing_mnt(
             name_suffix = ""
 
         temp_mnt_path = temp_dir / f"{current_tile_name}_MNT.tif"
-        # STANDARD : dalle + 50 m depuis les MNT voisins (P2) ; sinon (SMALL, dalle isolée, échec) copie seule.
+        # STANDARD : dalle + marge de calcul depuis les MNT voisins (P2) ; sinon (SMALL, dalle isolée, échec)
+        # copie seule.
         etendue = (not skip_crop) and _materialiser_mnt_avec_marge(
-            mnt_path, tiles, temp_mnt_path, DEFAULT_HALO_MARGIN_M, log)
+            mnt_path, tiles, temp_mnt_path, marge_calcul, log)
         marge_dalles["seuls" if skip_crop else "etendues" if etendue else "sans_voisin"] += 1
         if not etendue:
             _copy_source_mnt_to_temp(
@@ -602,6 +639,10 @@ def run_existing_mnt(
             crs=crs,
             sources=(existing_mnt_dir,),
         )
+        if ok and etendue and marge_calcul > DEFAULT_HALO_MARGIN_M:
+            halo = _voisines_utiles(mnt_path, tiles, _marge_au_pixel(spec, DEFAULT_HALO_MARGIN_M))[1]
+            if halo is not None:
+                _ramener_au_halo(temp_dir, current_tile_name, products, rvt_params, halo, log)
         if ok:
             processed += 1
 
@@ -620,7 +661,8 @@ def run_existing_mnt(
     )
     if cancel_check is not None and cancel_check():
         log("Annulation demandée, arrêt du traitement MNT.")
-    if bilan := _bilan_marge(marge_dalles["etendues"], marge_dalles["sans_voisin"], marge_dalles["seuls"]):
+    if bilan := _bilan_marge(marge_dalles["etendues"], marge_dalles["sans_voisin"], marge_dalles["seuls"],
+                             marge_calcul):
         log(bilan)
 
     if failures:

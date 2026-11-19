@@ -1395,3 +1395,10 @@ Automatique : `dev/controle_livrable.py <dossier>` (point « infobulle et résum
 - [ ] Survol d'une détection (infobulles de carte activées) : le titre est le nom de la couche (« Charbonnières », « Grandes dépressions… »), jamais un identifiant comme `charbonniere`. Même chose dans Propriétés › Métadonnées › Résumé.
 - [ ] Survol d'une détection grisée « Contexte moderne » (cocher la catégorie) : une ligne « **Contexte moderne** : <motif> (<donnée>) » ; une détection simplement informée porte « À noter : … » ; une détection sans contexte n'a aucune de ces lignes.
 - [ ] Préflight de l'étape 4, puis Journal des messages › Python : plus d'avertissement `scipy.ndimage.morphology`.
+
+## 80. MNT existants : marge des indices = plus grand rayon demandé (coutures du MSTP, 2026-11-18) ⭐ P1
+
+Automatique : `tests/unit/test_mstp_coutures.py` et le banc `D:/brouillons/mstp_coutures_2026-11-18/banc.py` (rapport jointure / intérieur ≈ 1). En séance, mode MNT existants sur 4 dalles d'1 km jointives, MSTP coché :
+- [ ] **80.1** Réglage par défaut : aucune ligne droite aux jointures sur l'image MSTP (rouge = échelle large) ; le journal dit « Marge inter-dalles de 200,5 m pour les indices… 50 m gardés pour la détection ».
+- [ ] **80.2** Échelle large max 1 000 m : pas de couture ; si la mémoire manque, la dalle est signalée en échec au journal (relancer avec moins de calculs simultanés).
+- [ ] **80.3** Détection cochée en plus : les images de la détection (technique/png) gardent la taille dalle + 50 m.
