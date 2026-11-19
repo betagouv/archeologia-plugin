@@ -18,7 +18,7 @@ fileignoreconfig:
 - filename: dev/fonds_publics.py
   checksum: 4e5e5075ace7aa02f6f7c7661c081ef9a9635488fb001959f35a4de2e1a010d2
 - filename: src/app/services/contexte_moderne.py
-  checksum: e459e860c24e6f14d94b97fe50ab942bcf287772d231ee89789f1ac1de0079d3
+  checksum: f358d680871961550a8136f82d0fa6c2b8516a959fea89bb22efe615007e2de3
 - filename: tests/unit/test_fonds_publics.py
   checksum: 616272f032175763f7d87dbf79a2dcaf37e8640e5a6ebaeace66b2736cd8f0ed
 - filename: src/app/services/contexte_gpkg.py
