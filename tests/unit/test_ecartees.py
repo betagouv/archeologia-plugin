@@ -67,3 +67,11 @@ def test_defaut_50_m2_pour_les_enclos_dans_le_catalogue():
     cat = {e.id: e for e in mo.load_entities_catalog(RACINE / "data" / "entities_catalog.json")}
     assert cat["enclos"].min_area_m2 == 50 and cat["enclos_circulaire"].min_area_m2 == 50
     assert cat["parcellaire"].min_area_m2 is None
+
+
+
+def test_une_seule_ecartee_au_singulier():
+    """Vu sur la recette 83 : « Fours : 1 détection — 1 écartées »."""
+    ligne = bf.LigneBilan(slug="fours", label="Fours", couche="Fours", classe="four", modele="m", categories=(),
+                          effectifs={"douteux": 1}, ecartes={"douteux": 1})
+    assert ligne.phrase() == "Fours : 1 détection — 1 écartée"

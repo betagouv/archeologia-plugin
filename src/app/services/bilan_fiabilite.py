@@ -98,7 +98,7 @@ class LigneBilan:
             sing, plur = _ADJECTIFS.get(cat, (cat, cat))
             morceaux.append(f"{_nb(n)} {sing if n == 1 else plur}")
         if self.n_ecartees:
-            morceaux.append(f"{_nb(self.n_ecartees)} {LIBELLE_ECARTEES}")
+            morceaux.append(f"{_nb(self.n_ecartees)} {LIBELLE_ECARTEES if self.n_ecartees > 1 else LIBELLE_ECARTEES[:-1]}")
         total = f"{_nb(self.total)} détection{'s' if self.total > 1 else ''}"
         return f"{self.label} : {total} — {', '.join(morceaux)}"
 

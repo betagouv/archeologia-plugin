@@ -492,7 +492,7 @@ def resume(marquees: int, informees: int, total: int) -> str:
         return f"Contexte moderne : rien à signaler autour de {total} détection{'s' if total > 1 else ''}."
     morceaux = []
     if marquees:
-        morceaux.append(f"{marquees} écartées (catégorie « Écartées », décochée)")
+        morceaux.append(f"{marquees} écartée{'s' if marquees > 1 else ''} (catégorie « Écartées », décochée)")
     if informees:
         morceaux.append(f"{informees} avec une information de contexte")
     return f"Contexte moderne : sur {total} détection{'s' if total > 1 else ''}, " + ", ".join(morceaux) + "."
