@@ -96,6 +96,12 @@ CONTEXTE_MODERNE = (
     ("Patrimoine", "#b2182b", (
         ("monuments_historiques", "Monuments historiques", "wfs_sup:generateur_sup_s", "surface", "nomsuplitt",
          "\"suptype\" = 'ac1'", True),
+        # ceux du croisement (2026-11-19) : repris du catalogue, qui garde leur service et leur clic
+        ("archeo_plu_surfaces", "Archéologie des PLU (zones)", "", "surface", "", "", True),
+        ("archeo_plu_points", "Archéologie des PLU (points)", "", "point", "", "", True),
+        ("bretagne_zppa", "Zones de présomption (Bretagne)", "", "surface", "", "", True),
+        ("aura_zppa", "Zones de présomption (Auvergne-Rhône-Alpes)", "", "surface", "", "", True),
+        ("cvl_zppa", "Zones de présomption (Centre-Val de Loire)", "", "surface", "", "", True),
     )),
 )
 PROPRIETE = "archeologia/fond_public"

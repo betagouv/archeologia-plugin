@@ -42,6 +42,15 @@ SOURCES_LINEAIRES = (ROUTE, VOIE_FERREE, TALUS_IGN, CANALISATION)
 #: Les lignes dont on mesure, sous une structure linéaire, la part de la détection qui les longe (le cours
 #: d'eau sert les deux familles : il informe les ponctuelles à 15 m, il « longe » les linéaires).
 LIGNES_LONGEES = SOURCES_LINEAIRES + (COURS_EAU,)
+#: Patrimoine connu (2026-11-19, décision de l'utilisateur) : il **informe** « site connu à proximité », pour
+#: toutes les structures, et n'exclut jamais (c'est un indice favorable). Monuments historiques et archéologie
+#: des plans d'urbanisme (Géoplateforme, toute la France où ils sont publiés) ; zones de présomption de
+#: prescription archéologique des régions qui les publient (Bretagne, Auvergne-Rhône-Alpes, Centre-Val de Loire).
+MONUMENT, PLU_ZONE, PLU_POINT = "monument", "plu_zone", "plu_point"
+ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL = "zppa_bretagne", "zppa_aura", "zppa_cvl"
+SOURCES_PATRIMOINE = (MONUMENT, PLU_ZONE, PLU_POINT, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
+#: Celles qui sont des zones : la détection est « dans » la zone, plutôt qu'« à N m ».
+ZONES_PATRIMOINE = (PLU_ZONE, ZPPA_BRETAGNE, ZPPA_AURA, ZPPA_CVL)
 
 #: Les cinq champs écrits sur chaque détection, dans cet ordre.
 CHAMPS = ("contexte_moderne", "contexte_info", "contexte_dist_m", "contexte_part", "contexte_source")
@@ -66,8 +75,18 @@ PART_DEDANS = 0.5
 #: de longueur pour une détection allongée. Calibrage : ``D:/brouillons/galerie_regles_2026-11-19``.
 RAYON_LINEAIRE = 6.0
 PART_LONGE = 0.3
+#: Patrimoine : un monument ou un site connu à moins de 50 m. Assez pour l'enceinte, les fossés ou la motte
+#: d'un château, une chapelle et son cimetière, un site ponctuel des plans d'urbanisme (pointé à quelques
+#: dizaines de mètres près) ; pas les 500 m des abords d'un monument historique, qui couvriraient un village.
+RAYON_PATRIMOINE = 50.0
 #: Rayon de recherche des objets autour d'une détection : le plus grand des rayons ci-dessus.
-RAYON_RECHERCHE = max(RAYON_BATIMENT, RAYON_EAU, RAYON_INFO, RAYON_COURS_EAU, RAYON_LINEAIRE)
+RAYON_PROCHE = max(RAYON_BATIMENT, RAYON_EAU, RAYON_INFO, RAYON_COURS_EAU, RAYON_LINEAIRE)
+RAYON_RECHERCHE = max(RAYON_PROCHE, RAYON_PATRIMOINE)
+
+
+def marge(source: str) -> float:
+    """La marge de téléchargement autour des détections : le patrimoine se cherche plus loin que le reste."""
+    return RAYON_PATRIMOINE if source in SOURCES_PATRIMOINE else RAYON_PROCHE
 #: En deçà, l'objet touche la détection : on écrit « recouvrant N % de la détection » ou « touchant la
 #: détection », jamais « à 0 m ».
 CONTACT_M = 0.5
@@ -142,6 +161,8 @@ def regle(objet: Objet, structure: str = "") -> Optional[Tuple[str, float]]:
     2026-11-12) : un plan d'eau aménagé informe une **dépression** sans l'exclure ; une structure
     **linéaire** n'est jamais exclue (:func:`effet`)."""
     a = objet.attributs
+    if objet.source in SOURCES_PATRIMOINE:
+        return INFORMER, RAYON_PATRIMOINE
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
         if objet.source == COURS_EAU and _txt(a, "nature").startswith(_TRONCONS_DE_SURFACE):
             return None
@@ -325,10 +346,36 @@ def _phrase_longe(objet: Objet) -> str:
     return f"longe {nom} sur {round(max(0.0, min(1.0, objet.part)) * 100)} % de sa longueur"
 
 
+_ZPPA = "zone de présomption de prescription archéologique"
+
+
+def _phrase_patrimoine(objet: Objet) -> str:
+    """« site connu à proximité : monument historique « Château de … » à 30 m », « site connu : dans la zone
+    de présomption de prescription archéologique (Rennes, zone 12) »."""
+    a, s = objet.attributs, objet.source
+    if s == MONUMENT:
+        nom = _nomme("monument historique", _txt(a, "nomsuplitt") or _txt(a, "nomgen"))
+    elif s == PLU_ZONE:
+        nom = _nomme("zone archéologique du plan d'urbanisme", _txt(a, "libelle"))
+    elif s == PLU_POINT:
+        nom = _nomme("site archéologique du plan d'urbanisme", _txt(a, "libelle"))
+    else:
+        commune = _txt(a, "COMMUNE") or _txt(a, "comm_nom") or _txt(a, "communes")
+        zone = _txt(a, "N_ZONE") or _txt(a, "zone")
+        lieu = ", ".join(x for x in (commune, f"zone {zone}" if zone else "") if x)
+        nom = f"{_ZPPA} ({lieu})" if lieu else _ZPPA
+    if s in ZONES_PATRIMOINE and objet.distance_m < CONTACT_M:
+        return f"site connu : dans la {nom}"
+    ou = "touchant la détection" if objet.distance_m < CONTACT_M else f"à {round(objet.distance_m)} m"
+    return f"site connu à proximité : {nom} {ou}"
+
+
 def phrase(objet: Objet, structure: str = "") -> str:
     """« étang (retenue) recouvrant 80 % de la détection », « bâtiment agricole à 3 m »,
     « mare à 6 m (origine naturelle) », « cours d'eau traversant la détection », et pour une structure
     linéaire « longe un chemin sur 80 % de sa longueur »."""
+    if objet.source in SOURCES_PATRIMOINE:
+        return _phrase_patrimoine(objet)
     if objet.source in LIGNES_LONGEES and est_lineaire(structure):
         return _phrase_longe(objet)
     if objet.source in SOURCES_PONCTUELLES:
@@ -362,7 +409,8 @@ def champs(objets: Iterable[Objet], structure: str = "", source: str = "",
     cites = exclus + infos
     decide = cites[0] if cites else None
     if cites and titres:
-        libelle = libelle_source(date_iso, list(dict.fromkeys(titres[o.source] for o in cites if o.source in titres)))
+        libelle = libelle_source(date_iso, list(dict.fromkeys(titres[o.source] for o in cites if o.source in titres)),
+                                 base_de(o.source for o in cites))
     else:
         libelle = source
     return {
@@ -374,11 +422,16 @@ def champs(objets: Iterable[Objet], structure: str = "", source: str = "",
     }
 
 
-def libelle_source(date_iso: str, titres: Sequence[str] = ()) -> str:
+def base_de(sources: Iterable[str]) -> str:
+    """« BD TOPO, IGN », ou « données publiques » dès qu'une donnée de patrimoine est citée (servitudes et
+    plans d'urbanisme de la Géoplateforme, services régionaux) : la BD TOPO ne la porte pas."""
+    return "données publiques" if any(s in SOURCES_PATRIMOINE for s in sources) else "BD TOPO, IGN"
+
+
+def libelle_source(date_iso: str, titres: Sequence[str] = (), base: str = "BD TOPO, IGN") -> str:
     """« Bâtiments (BD TOPO, IGN), lue le 2026-11-12 » : le nom de la donnée dans le Catalogue des flux,
     pour la retrouver et l'ajouter au projet, puis la base et la date de lecture (la base n'annonce pas son
     édition dans le flux). Plusieurs titres quand aucun objet n'a décidé : toutes les données consultées."""
-    base = "BD TOPO, IGN"
     tete = " · ".join(titres)
     texte = f"{tete} ({base})" if tete else "BD TOPO (IGN)"
     return f"{texte}, lue le {date_iso}" if date_iso else texte

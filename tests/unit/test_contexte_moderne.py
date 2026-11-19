@@ -142,7 +142,8 @@ def test_la_meme_retenue_exclut_un_enclos_et_informe_un_talus():
 
 
 def test_rayon_de_recherche_et_libelles():
-    assert cm.RAYON_RECHERCHE == 15.0          # 25 m tant que les lieux-dits étaient croisés (avant le 2026-11-18)
+    assert cm.RAYON_PROCHE == 15.0          # 25 m tant que les lieux-dits étaient croisés (avant le 2026-11-18)
+    assert cm.RAYON_RECHERCHE == cm.RAYON_PATRIMOINE == 50.0      # le patrimoine se cherche plus loin (2026-11-19)
     assert cm.libelle_source("2026-11-11") == "BD TOPO (IGN), lue le 2026-11-11"
     assert cm.libelle_source("2026-11-12", ["Bâtiments"]) == "Bâtiments (BD TOPO, IGN), lue le 2026-11-12"
     assert cm.libelle_source("2026-11-12", ["Bâtiments", "Surfaces en eau et mares"]) == (
@@ -262,7 +263,7 @@ def test_les_lieux_dits_ne_sont_plus_croises():
     """Décision du 2026-11-18 : un lieu-dit est une étiquette de carte ; il gonflait le compteur « avec une
     information » (« Forêt Domaniale de Vimy » sur 42 cratères) sans rien apprendre."""
     assert not hasattr(cm, "LIEU_DIT") and "lieu_dit" not in cm.SOURCES_PONCTUELLES
-    assert cm.RAYON_RECHERCHE == 15.0          # le plus grand rayon restant : mares, digues, cours d'eau
+    assert cm.RAYON_PROCHE == 15.0          # le plus grand rayon restant hors patrimoine : mares, digues, cours d'eau
 
 
 def test_l_eau_amenagee_suit_la_meme_part_minimale_que_le_bati():
@@ -383,3 +384,24 @@ def test_qui_consulte_quoi():
     assert cm.consulte(cm.ROUTE, "chemins_creux") and not cm.consulte(cm.ROUTE, "charbonnieres")
     assert cm.consulte(cm.COURS_EAU, "chemins_creux") and cm.consulte(cm.COURS_EAU, "charbonnieres")
     assert not cm.consulte(cm.ROND_POINT, "parcellaire") and cm.consulte(cm.BATIMENT, "parcellaire")
+
+
+# ── 2026-11-19 : le patrimoine connu informe « site connu à proximité », jamais n'écarte ───────────────────
+def test_le_patrimoine_informe_sans_jamais_ecarter():
+    zone = cm.Objet(cm.ZPPA_BRETAGNE, {"COMMUNE": "Rennes", "N_ZONE": "12"}, 0.0, 1.0)
+    for structure in ("enclos", "talus_et_fosses", "charbonnieres"):
+        c = cm.champs([zone], structure, "s")
+        assert c["contexte_moderne"] is None
+        assert c["contexte_info"] == ("site connu : dans la zone de présomption de prescription archéologique "
+                                      "(Rennes, zone 12)")
+    mh = cm.Objet(cm.MONUMENT, {"nomsuplitt": "Château de Fénétrange"}, 32.4)
+    assert cm.champs([mh], "enclos", "s")["contexte_info"] == \
+        "site connu à proximité : monument historique « Château de Fénétrange » à 32 m"
+    assert cm.champs([cm.Objet(cm.MONUMENT, {}, cm.RAYON_PATRIMOINE + 1)], "enclos", "s")["contexte_info"] is None
+
+
+def test_la_source_d_une_information_de_patrimoine_n_est_pas_la_bd_topo():
+    c = cm.champs([cm.Objet(cm.PLU_POINT, {"libelle": "Site gallo-romain"}, 10.0)], "enclos", "",
+                  {cm.PLU_POINT: "Archéologie des PLU (points)"}, "2026-11-19")
+    assert c["contexte_source"] == "Archéologie des PLU (points) (données publiques), lue le 2026-11-19"
+    assert cm.base_de([cm.BATIMENT, cm.EAU]) == "BD TOPO, IGN"

@@ -146,7 +146,12 @@ def _structure(det_dir: Path, gpkg: Path, couche: str) -> str:
 TITRES_PAR_DEFAUT = {cm.BATIMENT: "Bâtiments", cm.EAU: "Surfaces en eau et mares", cm.COURS_EAU: "Cours d'eau",
                      cm.HABITATION: "Zones d'habitation", cm.ROND_POINT: "Ronds-points",
                      cm.ROUTE: "Routes et chemins", cm.VOIE_FERREE: "Voies ferrées",
-                     cm.TALUS_IGN: "Talus, levées et fronts de carrière", cm.CANALISATION: "Canalisations"}
+                     cm.TALUS_IGN: "Talus, levées et fronts de carrière", cm.CANALISATION: "Canalisations",
+                     cm.MONUMENT: "Monuments historiques", cm.PLU_ZONE: "Archéologie des PLU (zones)",
+                     cm.PLU_POINT: "Archéologie des PLU (points)",
+                     cm.ZPPA_BRETAGNE: "Zones de présomption (Bretagne)",
+                     cm.ZPPA_AURA: "Zones de présomption (Auvergne-Rhône-Alpes)",
+                     cm.ZPPA_CVL: "Zones de présomption (Centre-Val de Loire)"}
 
 
 def titres_catalogue() -> Dict[str, str]:
@@ -223,18 +228,20 @@ def marquer(det_dir: Path, lire_json: Callable[[str], Mapping], *, crs: str = "E
     if not lues:
         return Bilan()
     emprises = [g.bounds for _g, _c, _f, geoms in lues for g in geoms if g is not None and not g.is_empty]
-    carres = cc.cellules(emprises)
+    carres = {m: cc.cellules(emprises, m) for m in {cm.marge(s) for s in cc.COUCHES}}
     structures = {_structure(det_dir, gpkg, couche) for gpkg, couche, _f, _g in lues}
     # seulement les données qu'au moins une structure du traitement consulte (pas de route sans linéaire)
-    voulues = [s for s in cc.COUCHES if any(cm.consulte(s, st) for st in structures)]
+    voulues = [s for s in cc.COUCHES if any(cm.consulte(s, st) for st in structures)
+               and any(cc.dans_emprise(s, b) for b in carres[cm.marge(s)])]   # pas la Bretagne en Moselle
     titres = titres_catalogue()
     noms = ", ".join(titres[s][:1].lower() + titres[s][1:] for s in voulues)
-    journal(f"Contexte moderne : lecture de la BD TOPO de l'IGN autour des détections ({noms} ; "
-            f"{len(carres)} requête{'s' if len(carres) > 1 else ''} par donnée)…")
+    n = len(carres[cm.RAYON_PROCHE])
+    journal(f"Contexte moderne : lecture de la BD TOPO de l'IGN et du patrimoine connu autour des détections "
+            f"({noms} ; {n} requête{'s' if n > 1 else ''} par donnée)…")
     objets = {}
     for source in voulues:
         try:
-            objets[source] = cc.telecharger(source, carres, lire_json, annule)
+            objets[source] = cc.telecharger(source, carres[cm.marge(source)], lire_json, annule)
         except Exception as exc:                   # noqa: BLE001 — réseau : jamais d'échec du traitement
             if source not in cc.FACULTATIVES:
                 return Bilan(motif=f"Contexte moderne non vérifié : la BD TOPO de l'IGN est injoignable "
@@ -249,12 +256,12 @@ def marquer(det_dir: Path, lire_json: Callable[[str], Mapping], *, crs: str = "E
     except Exception as exc:                       # noqa: BLE001 — fichier verrouillé, disque : le marquage continue
         journal(f"Contexte moderne : données non enregistrées dans le dossier du traitement ({type(exc).__name__}).")
     jour = aujourd_hui or date.today().isoformat()
-    bilan = Bilan(source=cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in voulues))))
+    bilan = Bilan(source=cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in voulues)), cm.base_de(voulues)))
     for gpkg, couche, fids, geoms in lues:
         structure = _structure(det_dir, gpkg, couche)
         # « rien à proximité » nomme les données consultées pour cette structure
         consultees = [s for s in voulues if cm.consulte(s, structure)]
-        source = cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in consultees)))
+        source = cm.libelle_source(jour, list(dict.fromkeys(titres[s] for s in consultees)), cm.base_de(consultees))
         valeurs = cc.croiser(geoms, objets, structure, source, titres, jour)
         ecrire_champs(gpkg, couche, fids, valeurs)
         recompter_ecartes(gpkg)                 # le bilan « Par où commencer » montre les écartées à part

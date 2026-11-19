@@ -41,17 +41,33 @@ COUCHES = {
     cm.VOIE_FERREE: ("BDTOPO_V3:troncon_de_voie_ferree", ("nature",)),
     cm.TALUS_IGN: ("BDTOPO_V3:ligne_orographique", ("nature",)),
     cm.CANALISATION: ("BDTOPO_V3:canalisation", ("nature",)),
+    # patrimoine connu (2026-11-19) : Géoplateforme (servitudes, plans d'urbanisme) et services régionaux
+    cm.MONUMENT: ("wfs_sup:generateur_sup_s", ("suptype", "nomsuplitt", "nomgen")),
+    cm.PLU_ZONE: ("wfs_du:info_surf", ("typeinf", "libelle")),
+    cm.PLU_POINT: ("wfs_du:info_pct", ("typeinf", "libelle")),
+    cm.ZPPA_BRETAGNE: ("drac:bretagne_zppa", ("COMMUNE", "N_ZONE")),
+    cm.ZPPA_AURA: ("ms:n_atlaspatrimoine_zppa_s_r84", ("comm_nom", "prot_objet")),
+    cm.ZPPA_CVL: ("zppa_cvl_executoire_2025_gpkg_06-03-2026_wfs:zppa_cvl_executoire_2025", ("communes", "zone")),
 }
 #: Données dont une panne ne compromet pas le croisement (2026-11-19) : elles ne font qu'informer, ou viennent
 #: d'un autre service ; leur absence est dite au journal et le reste est écrit. Les cinq premières données,
 #: elles, décident des exclusions : sans elles, rien n'est écrit (comme avant).
-FACULTATIVES = frozenset({cm.ROUTE, cm.VOIE_FERREE, cm.TALUS_IGN, cm.CANALISATION})
+FACULTATIVES = frozenset({cm.ROUTE, cm.VOIE_FERREE, cm.TALUS_IGN, cm.CANALISATION, *cm.SOURCES_PATRIMOINE})
 #: Service WFS d'une donnée qui n'est pas sur la Géoplateforme.
-SERVICES: Dict[str, str] = {}
+SERVICES: Dict[str, str] = {cm.ZPPA_BRETAGNE: "https://geobretagne.fr/geoserver/drac/ows",
+                             cm.ZPPA_AURA: "https://datacarto.open-datara.fr/wfs"}
 #: Emprise (Lambert-93) d'une donnée régionale : hors d'elle, on ne la demande pas.
-EMPRISES: Dict[str, Tuple[float, float, float, float]] = {}
+EMPRISES: Dict[str, Tuple[float, float, float, float]] = {   # emprises du catalogue, en Lambert-93 (+ 5 km)
+    cm.ZPPA_BRETAGNE: (76000, 6677000, 415000, 6913000),
+    cm.ZPPA_AURA: (642000, 6350000, 1022000, 6626000),
+    cm.ZPPA_CVL: (479000, 6599000, 710000, 6828000),
+}
 #: Filtre appliqué sur le poste : ``(champ, valeurs gardées)`` (le service rend tout, l'emprise est petite).
-FILTRES_LOCAUX: Dict[str, Tuple[str, frozenset]] = {}
+FILTRES_LOCAUX: Dict[str, Tuple[str, frozenset]] = {
+    cm.MONUMENT: ("suptype", frozenset({"ac1"})),            # servitudes : les monuments historiques
+    cm.PLU_ZONE: ("typeinf", frozenset({"16"})),             # informations des PLU : l'archéologie
+    cm.PLU_POINT: ("typeinf", frozenset({"16"})),
+}
 #: Filtre côté serveur : on ne télécharge pas toutes les routes pour n'en garder que les ronds-points.
 FILTRES = {cm.ROND_POINT: "nature='Rond-point'"}
 #: La donnée du Catalogue des flux qui correspond à chaque source : son titre est écrit dans
@@ -59,7 +75,9 @@ FILTRES = {cm.ROND_POINT: "nature='Rond-point'"}
 ID_CATALOGUE = {cm.BATIMENT: "batiments", cm.EAU: "surfaces_en_eau", cm.COURS_EAU: "cours_eau",
                 cm.HABITATION: "zones_habitation", cm.ROND_POINT: "ctx_ronds_points",
                 cm.ROUTE: "routes_chemins", cm.VOIE_FERREE: "ctx_voies_ferrees", cm.TALUS_IGN: "ctx_talus_ign",
-                cm.CANALISATION: "ctx_canalisations"}
+                cm.CANALISATION: "ctx_canalisations", cm.MONUMENT: "monuments_historiques",
+                cm.PLU_ZONE: "archeo_plu_surfaces", cm.PLU_POINT: "archeo_plu_points", cm.ZPPA_BRETAGNE: "bretagne_zppa",
+                cm.ZPPA_AURA: "aura_zppa", cm.ZPPA_CVL: "cvl_zppa"}
 CELLULE_M = 10_000.0
 PAGE = 5000
 
@@ -110,6 +128,12 @@ def url_page(typename: str, bbox: Bbox, debut: int, service: str = SERVICE_WFS, 
 ESSAIS_PAGE = 3
 
 
+def dans_emprise(source: str, boite: Bbox) -> bool:
+    """Faux pour une donnée régionale (:data:`EMPRISES`) dont l'emprise ne touche pas la boîte."""
+    e = EMPRISES.get(source)
+    return not e or not (boite[2] < e[0] or boite[0] > e[2] or boite[3] < e[1] or boite[1] > e[3])
+
+
 def telecharger(source: str, carres: Sequence[Bbox], lire_json: Callable[[str], Mapping[str, Any]],
                 annule: Callable[[], bool] = lambda: False,
                 pause: Callable[[float], None] = time.sleep) -> List[Dict[str, Any]]:
@@ -131,11 +155,10 @@ def telecharger(source: str, carres: Sequence[Bbox], lire_json: Callable[[str], 
 
     typename, gardes = COUCHES[source]
     service = SERVICES.get(source, SERVICE_WFS)
-    emprise = EMPRISES.get(source)
     champ, valeurs = FILTRES_LOCAUX.get(source, ("", frozenset()))
     vus, objets = set(), []
     for carre in carres:
-        if emprise and (carre[2] < emprise[0] or carre[0] > emprise[2] or carre[3] < emprise[1] or carre[1] > emprise[3]):
+        if not dans_emprise(source, carre):
             continue
         debut = 0
         while True:

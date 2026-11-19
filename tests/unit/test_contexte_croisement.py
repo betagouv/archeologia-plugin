@@ -94,7 +94,8 @@ def test_url_filtree_l_emprise_passe_dans_le_filtre():
     u = cc.url_page("BDTOPO_V3:troncon_de_route", (0, 0, 10000, 10000), 0, filtre="nature='Rond-point'")
     assert "&BBOX=" not in u and "CQL_FILTER=nature%3D%27Rond-point%27%20AND%20BBOX%28geometrie%2C0%2C0%2C10000%2C10000" in u
     assert cc.FILTRES == {cm.ROND_POINT: "nature='Rond-point'"}
-    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES, *cm.SOURCES_LINEAIRES}
+    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES, *cm.SOURCES_LINEAIRES,
+                                                         *cm.SOURCES_PATRIMOINE}
 
 
 def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():
@@ -178,3 +179,19 @@ def test_les_lignes_longees_ne_servent_que_les_lineaires():
     assert cc.croiser([box(0, -2, 100, 2)], route, "charbonnieres", "s")[0]["contexte_info"] is None
     assert cc.croiser([box(0, -2, 100, 2)], route, "talus_et_fosses", "s")[0]["contexte_info"] == \
         "longe une route sur 100 % de sa longueur"
+
+
+def test_filtre_sur_le_poste_et_service_regional_hors_de_sa_region():
+    appels = []
+
+    def faux(url):
+        appels.append(url)
+        return {"features": [{"id": "a", "geometry": mapping(Point(0, 0).buffer(1)), "properties": {"suptype": "ac1"}},
+                             {"id": "b", "geometry": mapping(Point(5, 0).buffer(1)), "properties": {"suptype": "ac4"}}]}
+    # les servitudes rendent tout : seuls les monuments historiques (ac1) sont gardés, sans tri par cleabs
+    objets = cc.telecharger(cm.MONUMENT, [(0, 0, 10, 10)], faux)
+    assert len(objets) == 1 and "SORTBY" not in appels[0]
+    # la Bretagne n'est pas interrogée pour une zone de Moselle
+    assert cc.telecharger(cm.ZPPA_BRETAGNE, [(980000, 6860000, 990000, 6870000)], faux) == [] and len(appels) == 1
+    assert cc.telecharger(cm.ZPPA_BRETAGNE, [(350000, 6780000, 351000, 6781000)], faux)
+    assert appels[-1].startswith("https://geobretagne.fr/geoserver/drac/ows?")
