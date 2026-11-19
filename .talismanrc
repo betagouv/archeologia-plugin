@@ -6,25 +6,25 @@ fileignoreconfig:
 - filename: data/fonds_publics/essais.json
   checksum: 31f14fcfb5a6a4f72196f899b702bd40016c6a62e2392d9180d5fab2a169e831
 - filename: tests/unit/test_contexte_moderne.py
-  checksum: 0e4a977b6dc6bca344541a84fa8ba3b4bf4e179e92e7e536f551899fe4a9caf7
+  checksum: cb4703024364bf6d35832df0732fbb07c5b2770466c9b0b0bbaf87ed38c3b013
 - filename: tests/unit/test_contexte_gpkg.py
-  checksum: 1a5e06981db85c4a9baf66edae54d1799f5efbca02fc538764485c25b56dc9cd
+  checksum: 15e97b3371f26962a75aeec12c7e3135aa3631be2f00d91c8aed6522dc9e9e38
 - filename: tests/unit/test_contexte_finalize.py
   checksum: cfc5a71cae8c68ec08ddfce1055f28d409066c0f5d8a4b664760c426a0ea2bf2
 - filename: aide/img/fonds-de-carte.png
   checksum: 2ea24c79683b62ebbc8f86398bddd67ad02c0f69468c70951809590dd2cfadcf
 - filename: src/app/services/fonds_publics.py
-  checksum: ef98c7ad181f699ef1e4db91988ffa3fa31fbfb816b68f594bdc9ffc35c93b01
+  checksum: adef3fc318a0e548763f7ffe8b01b4eccffbd069c8b6f8187e7712471aa4f7ea
 - filename: dev/fonds_publics.py
   checksum: 4e5e5075ace7aa02f6f7c7661c081ef9a9635488fb001959f35a4de2e1a010d2
 - filename: src/app/services/contexte_moderne.py
-  checksum: 269ead15b03be4f0efa55f8033563da27d084994c8c71e0e1a29875909df1fc1
+  checksum: 2e6161c07e16b2ee63725f062ed195c62942fdf7b7e0050ca76e8e17b3374bd4
 - filename: tests/unit/test_fonds_publics.py
-  checksum: 16724462c6132d1a221ce66a60cf4077ba91e3bfca341afdc41bd8eb3dfdc1d5
+  checksum: 616272f032175763f7d87dbf79a2dcaf37e8640e5a6ebaeace66b2736cd8f0ed
 - filename: src/app/services/contexte_gpkg.py
-  checksum: b596fa9c9b483c99bc05852b754e2059dfa2658c3ddbe6ddff55451c4c238a5e
+  checksum: f33958773af8820e6033fab11b773f2a9d0a2084d7f631cd8038fa8eb6f3b148
 - filename: src/app/services/contexte_croisement.py
-  checksum: 593a7a293fef1206469581e6133a4e4e8a98d43622fb844a20dd3d6d1c058caa
+  checksum: e089ee7fbb77631863a59fddc636b080fe58672b159fef8d022c207e337be182
 - filename: dev/fonds_couverture.py
   checksum: a8ef1170117fa0e8dbaeffe26164cbae56411c4fd400b142abd92261a5dd6c92
 - filename: dev/controle_flux.py
@@ -460,7 +460,7 @@ fileignoreconfig:
 - filename: src/ui/wizard_dialog.py
   checksum: 0c9023757dd2cd6126535cfd2202a405d8b2f7d8640bbc8cfb1e7334b67b3f05
 - filename: tests/TESTS_MANUELS_QGIS.md
-  checksum: 6abe289f2dc6576777b90b11ed202810459950a9306110cd589a903c1c33a7b0
+  checksum: 05146e399576bffedf5d2e765be4a687d21a30ad369a565a9a7e4d98467b626e
 - filename: tests/integration/test_existing_mnt_runner_finalize.py
   checksum: 09edbe48be7d273624e9d95354e3273c07a648491880cdb33c590782900510db
 - filename: tests/integration/test_existing_rvt_runner_isolation.py
@@ -582,7 +582,7 @@ fileignoreconfig:
 - filename: .claude/commands/livraison.md
   checksum: 535157e1d41300a87bf85911afaf6edbf2e6ee0955a136f4231abb3adbaf94b8
 - filename: aide/08-resultats.md
-  checksum: 7763dc3c8faf99cb2849440bc040ed4a3d68024646b750d00d82aaf2e68817ca
+  checksum: 1bff70a8f7f969a751e6afed6ba4c2a81c4d0d65aff40854c8ddcc0fe8da05d5
 - filename: aide/04-etape-2-produits.md
   checksum: 389a6e18cffaad8c6d2a80460aa9c1995f1ffe88c5e97d4acb5cca42e4e5ff9a
 - filename: aide/09-depannage.md
@@ -604,7 +604,7 @@ fileignoreconfig:
 - filename: dev/build_quadrillage_from_wfs.py
   checksum: 5286a1495ce8a7a8bf350eb5bcff2c2827dca6e2c50454ef6b3210995610e3f6
 - filename: docs/contrats.md
-  checksum: 33775fc95ee64a1c3187e316b5cea53873deb63c20a709f69b57e3b3e8b5a414
+  checksum: 71906f16720a00c8a6ab1fa796aa0026fe5e107e9bc1336c1708839af02dfd14
 - filename: src/app/services/arborescence.py
   checksum: c5e606980a36c45a1741ce2471bb8eae676f7dab2f222ab8cb75a360a074f91c
 - filename: src/app/services/carte_zones.py
@@ -720,7 +720,7 @@ fileignoreconfig:
 - filename: src/app/services/sorties_prevues.py
   checksum: 3ded5ec72803f9b6c4994357cecdd9cfbea602e9e0c84be63a23b85c0c58a219
 - filename: aide/07-etape-5-traitement.md
-  checksum: a995018a6f30fa7a65c8401be99c2ad719f589fa985ec304966f1e6136884408
+  checksum: 1ebb0291b943c14d642e74782f15aa57dbedb199d7fec1c9008b823d46383d9c
 - filename: tests/unit/test_sorties_prevues.py
   checksum: b25f3282553a6d5fe6ecfee0eec124a5a73dc44fff637e14c7883d972ab976df
 - filename: src/app/services/vocabulaire.py
