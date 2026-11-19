@@ -1282,11 +1282,18 @@ Lot 3 du chantier d'accélération (2026-10-15) : une dalle lue en entier reçoi
 - [ ] **74.3 Structure non relancée** : décocher une structure présente dans le dossier → son GeoPackage et sa couche restent tels quels.
 - [ ] **74.4 Verdicts** : des verdicts saisis dans une structure relancée sont perdus (le manuel le dit, § Relancer dans le même dossier) ; ceux d'une structure non relancée restent.
 
-## 75. Arbre d'une analyse : « Qualité de la donnée », « Structures », « Indices » exclusif (2026-11-18) ⭐ P1
+## 75. MNT existants : marge des indices = plus grand rayon demandé (coutures du MSTP, 2026-11-18) ⭐ P1
+
+Automatique : `tests/unit/test_mstp_coutures.py` et le banc `D:/brouillons/mstp_coutures_2026-11-18/banc.py` (rapport jointure / intérieur ≈ 1). En séance, mode MNT existants sur 4 dalles d'1 km jointives, MSTP coché :
+- [ ] **75.1** Réglage par défaut : aucune ligne droite aux jointures sur l'image MSTP (rouge = échelle large) ; le journal dit « Marge inter-dalles de 200,5 m pour les indices… 50 m gardés pour la détection ».
+- [ ] **75.2** Échelle large max 1 000 m : pas de couture ; si la mémoire manque, la dalle est signalée en échec au journal (relancer avec moins de calculs simultanés).
+- [ ] **75.3** Détection cochée en plus : les images de la détection (technique/png) gardent la taille dalle + 50 m.
+
+## 81. Arbre d'une analyse : « Qualité de la donnée », « Structures », « Indices » exclusif (2026-11-18) ⭐ P1
 
 Automatique : `python-qgis.bat dev/rendu_hors_ecran.py arbre` sous les deux QGIS (projet écrit, chargement en direct, analyse déjà chargée rangée à l'ancienne) et `tests/unit/test_arbre_analyse_qgs.py`. En séance, sur un traitement avec MNT, LD, un autre indice, la couverture et la densité :
-- [ ] **75.1 Ordre** : sous le groupe de l'analyse, « Qualité de la donnée », « Structures », « Indices » — dans `livrable/projet.qgs` comme après « Ajouter au projet QGIS courant ».
-- [ ] **75.2 Qualité** : zones mal couvertes en tête, cochées ; couverture et densité décochées ; plusieurs cases cochables à la fois.
-- [ ] **75.3 Indices exclusif** : LD seul coché à l'ouverture ; cocher le SVF décoche le LD ; MNT dans le groupe, en dernier. Sans LD : le premier indice coché.
-- [ ] **75.4 Analyse déjà chargée** : une analyse ajoutée avec la version précédente (couverture dans « Indices », zones mal couvertes en tête du groupe) puis ajoutée de nouveau → rangée dans les nouveaux groupes, aucune couche en double.
-- [ ] **75.5 Analyse d'avant 0.19.0** (sans titre, rasters à plat à la racine) : chargée comme avant, pas de groupe exclusif à la racine.
+- [ ] **81.1 Ordre** : sous le groupe de l'analyse, « Qualité de la donnée », « Structures », « Indices » — dans `livrable/projet.qgs` comme après « Ajouter au projet QGIS courant ».
+- [ ] **81.2 Qualité** : zones mal couvertes en tête, cochées ; couverture et densité décochées ; plusieurs cases cochables à la fois.
+- [ ] **81.3 Indices exclusif** : LD seul coché à l'ouverture ; cocher le SVF décoche le LD ; MNT dans le groupe, en dernier. Sans LD : le premier indice coché.
+- [ ] **81.4 Analyse déjà chargée** : une analyse ajoutée avec la version précédente (couverture dans « Indices », zones mal couvertes en tête du groupe) puis ajoutée de nouveau → rangée dans les nouveaux groupes, aucune couche en double.
+- [ ] **81.5 Analyse d'avant 0.19.0** (sans titre, rasters à plat à la racine) : chargée comme avant, pas de groupe exclusif à la racine.
