@@ -302,19 +302,24 @@ def test_le_contexte_moderne_ajoute_les_donnees_que_cite_le_croisement():
     # de simples étiquettes de carte) : les autres présentes et décochées.
     assert cochees == {"ctx_ronds_points", "batiments", "ctx_reservoirs", "ctx_cimetieres", "surfaces_en_eau",
                        "cours_eau", "zones_habitation", "monuments_historiques",
-                       "ctx_cavites", "ctx_mouvements_terrain"}
-    assert len(ids) == 31
-    # Géorisques a son propre service ; tout le reste vient de la Géoplateforme.
+                       "ctx_cavites", "ctx_mouvements_terrain",
+                       # le patrimoine que croise le contexte (2026-11-19)
+                       "archeo_plu_surfaces", "archeo_plu_points", "bretagne_zppa", "aura_zppa", "cvl_zppa"}
+    assert len(ids) == 37                  # + talus de l'IGN et cinq données de patrimoine (2026-11-19)
+    # Géorisques et les services régionaux (patrimoine) ont leur propre service ; le reste vient de la
+    # Géoplateforme. Une couche « ms: » hors du catalogue est de Géorisques.
     for _g, fond, _v in couches:
-        georisques = fond.typename.startswith("ms:")
-        assert (fp.SERVICE_GEORISQUES in fp.uri_objets(fond)) is georisques
-        assert (fp.SERVICE_OBJETS in fp.uri_objets(fond)) is not georisques
+        attendu = fond.service_objets or fp.SERVICE_OBJETS
+        assert attendu in fp.uri_objets(fond), fond.id
+        if fond.typename.startswith("ms:") and fond.id.startswith("ctx_"):
+            assert fond.service_objets == fp.SERVICE_GEORISQUES
 
 
 def test_le_contexte_moderne_est_range_par_famille_comme_dans_les_essais():
     couches = fp.couches_contexte(list(PAR_ID.values()))
     familles = list(dict.fromkeys(g for g, _f, _v in couches))
-    assert familles == ["Routes et transports", "Bâti et constructions", "Hydrographie", "Énergie et réseaux",
+    assert familles == ["Routes et transports", "Bâti et constructions", "Hydrographie", "Relief recensé par l'IGN",
+                        "Énergie et réseaux",
                         "Parcellaire et toponymie", "IGN complément", "Géorisques (BRGM)", "Patrimoine"]
     for _g, fond, _v in couches:
         assert fond.nom_couche == fond.titre                 # pas d'époque devant le nom

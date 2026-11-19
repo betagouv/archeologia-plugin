@@ -16,11 +16,16 @@ def objet(geom, **props):
     return {"geometry": mapping(geom), "properties": props}
 
 
-def test_cellules_calees_sur_la_grille_et_elargies_du_rayon():
+def test_cellules_reduites_a_l_emprise_des_detections():
+    """2026-11-19 (décision de l'utilisateur) : on ne télécharge plus le carré de 10 km entier mais, dans
+    chaque carré occupé, l'emprise des détections élargie de la marge (sur le traitement « test » :
+    9 461 bâtiments reçus, 204 utiles). Jamais plus de requêtes qu'avant : une boîte par carré occupé."""
     assert cc.cellules([]) == []
-    assert cc.cellules([(1000, 1000, 2000, 2000)]) == [(0.0, 0.0, 10000.0, 10000.0)]
-    # une détection à 5 m du bord : le rayon de recherche (15 m) déborde sur la cellule voisine
-    assert cc.cellules([(9990, 5000, 9995, 5010)]) == [(0.0, 0.0, 10000.0, 10000.0), (10000.0, 0.0, 20000.0, 10000.0)]
+    assert cc.cellules([(1000, 1000, 2000, 2000)], marge=15) == [(985, 985, 2015, 2015)]
+    # deux détections dans le même carré : une seule boîte, leur union
+    assert cc.cellules([(1000, 1000, 1010, 1010), (3000, 4000, 3010, 4010)], marge=0) == [(1000, 1000, 3010, 4010)]
+    # une détection à 5 m du bord : la marge déborde sur le carré voisin, chaque boîte reste dans son carré
+    assert cc.cellules([(9990, 5000, 9995, 5010)], marge=15) == [(9975, 4985, 10000, 5025), (10000, 4985, 10010, 5025)]
     assert len(cc.cellules([(942500, 6731500, 1003500, 6768500)])) == 7 * 4      # Vosges : 7 × 4 carrés
 
 
@@ -89,7 +94,8 @@ def test_url_filtree_l_emprise_passe_dans_le_filtre():
     u = cc.url_page("BDTOPO_V3:troncon_de_route", (0, 0, 10000, 10000), 0, filtre="nature='Rond-point'")
     assert "&BBOX=" not in u and "CQL_FILTER=nature%3D%27Rond-point%27%20AND%20BBOX%28geometrie%2C0%2C0%2C10000%2C10000" in u
     assert cc.FILTRES == {cm.ROND_POINT: "nature='Rond-point'"}
-    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES}
+    assert set(cc.COUCHES) == set(cc.ID_CATALOGUE) == {cm.BATIMENT, cm.EAU, *cm.SOURCES_PONCTUELLES, *cm.SOURCES_LINEAIRES,
+                                                         *cm.SOURCES_PATRIMOINE, *cm.SOURCES_A_CALIBRER}
 
 
 def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():
@@ -99,7 +105,7 @@ def test_croiser_les_troncons_d_un_rond_point_sont_refermes_en_disque():
     moities = [LineString(anneau[:len(anneau) // 2 + 1]), LineString(anneau[len(anneau) // 2:])]
     objets = {cm.ROND_POINT: [objet(m, nature="Rond-point") for m in moities]}
     ilot, loin = cc.croiser([Point(100, 100).buffer(12), Point(160, 100).buffer(12)], objets, "enclos_circulaires", "s")
-    assert ilot["contexte_moderne"] == "sur un rond-point" and ilot["contexte_part"] == 100
+    assert ilot["contexte_moderne"] == "rond-point recouvrant 100 % de la détection" and ilot["contexte_part"] == 100
     assert loin["contexte_moderne"] is None and loin["contexte_info"] is None
     # un talus sur le même rond-point n'est pas concerné (les linéaires viendront plus tard)
     assert cc.croiser([Point(100, 100).buffer(12)], objets, "talus_et_fosses", "s")[0]["contexte_moderne"] is None
@@ -150,3 +156,67 @@ def test_croiser_garde_l_ordre_et_tolere_les_geometries_vides_ou_invalides():
 
 def test_croiser_sans_aucun_objet():
     assert cc.croiser([box(0, 0, 1, 1)], {}, "enclos", "s")[0]["contexte_source"] == "s"
+
+
+# ── 2026-11-19 : les linéaires longent routes, voies ferrées, cours d'eau, talus de l'IGN, canalisations ─────
+def test_un_chemin_creux_qui_longe_une_route_coupee_en_deux_troncons():
+    from shapely.geometry import LineString
+
+    troncons = {cm.ROUTE: [objet(LineString([(0, 0), (50, 0)]), nature="Chemin"),
+                           objet(LineString([(50, 0), (100, 0)]), nature="Chemin")]}
+    long_de_la_route = box(0, -2, 100, 2)                    # 4 m de large, 100 m le long du chemin
+    (c,) = cc.croiser([long_de_la_route], troncons, "chemins_creux", "s")
+    assert c["contexte_info"] == "longe un chemin sur 100 % de sa longueur" and c["contexte_moderne"] is None
+    # un parcellaire qui ne fait que traverser la route n'est pas dit la longer
+    (x,) = cc.croiser([box(48, -50, 52, 50)], troncons, "parcellaire", "s")
+    assert x["contexte_info"] is None
+
+
+def test_les_lignes_longees_ne_servent_que_les_lineaires():
+    from shapely.geometry import LineString
+
+    route = {cm.ROUTE: [objet(LineString([(0, 0), (100, 0)]), nature="Route à 1 chaussée")]}
+    assert cc.croiser([box(0, -2, 100, 2)], route, "charbonnieres", "s")[0]["contexte_info"] is None
+    assert cc.croiser([box(0, -2, 100, 2)], route, "talus_et_fosses", "s")[0]["contexte_info"] == \
+        "longe une route sur 100 % de sa longueur"
+
+
+def test_filtre_sur_le_poste_et_service_regional_hors_de_sa_region():
+    appels = []
+
+    def faux(url):
+        appels.append(url)
+        return {"features": [{"id": "a", "geometry": mapping(Point(0, 0).buffer(1)), "properties": {"suptype": "ac1"}},
+                             {"id": "b", "geometry": mapping(Point(5, 0).buffer(1)), "properties": {"suptype": "ac4"}}]}
+    # les servitudes rendent tout : seuls les monuments historiques (ac1) sont gardés, sans tri par cleabs
+    objets = cc.telecharger(cm.MONUMENT, [(0, 0, 10, 10)], faux)
+    assert len(objets) == 1 and "SORTBY" not in appels[0]
+    # la Bretagne n'est pas interrogée pour une zone de Moselle
+    assert cc.telecharger(cm.ZPPA_BRETAGNE, [(980000, 6860000, 990000, 6870000)], faux) == [] and len(appels) == 1
+    assert cc.telecharger(cm.ZPPA_BRETAGNE, [(350000, 6780000, 351000, 6781000)], faux)
+    assert appels[-1].startswith("https://geobretagne.fr/geoserver/drac/ows?")
+
+
+# ── 2026-11-19 : les carrés symboliques de 5 m de l'IGN n'écartent jamais ───────────────────────────────────
+def test_un_parking_symbolique_informe_un_vrai_parking_ecarte():
+    """Là où l'IGN n'a pas dessiné l'emprise, un parking (ou une station d'épuration) est un carré EXACT de
+    5 × 5 m (247 parkings sur 686 dans le corpus, aucun vrai contour sous 91 m²) : il dit qu'il y a quelque
+    chose, pas où. Il informe sans jamais écarter ; un vrai contour écarte à 10 %."""
+    charbonniere = Point(102, 102).buffer(4)                         # ≈ 50 m², à moitié sous le carré
+    symbole = {cm.PARKING: [objet(box(100, 100, 105, 105), nature="Parking")]}
+    (c,) = cc.croiser([charbonniere], symbole, "charbonnieres", "s")
+    assert c["contexte_moderne"] is None
+    assert c["contexte_info"] == "parking signalé touchant la détection (emprise non dessinée par l'IGN)"
+    pres = cc.croiser([Point(115, 102).buffer(4)], symbole, "charbonnieres", "s")[0]
+    assert pres["contexte_info"] == "parking signalé à 6 m (emprise non dessinée par l'IGN)"
+    assert cc.croiser([Point(130, 102).buffer(4)], symbole, "charbonnieres", "s")[0]["contexte_info"] is None
+    vrai = {cm.PARKING: [objet(box(90, 90, 130, 115), nature="Parking")]}
+    assert cc.croiser([charbonniere], vrai, "charbonnieres", "s")[0]["contexte_moderne"] == \
+        "parking recouvrant 100 % de la détection"
+
+
+def test_seul_un_carre_de_5_m_est_un_symbole():
+    assert cc.est_symbole(box(0, 0, 5, 5)) and cc.est_symbole(box(0, 0, 5.05, 5.05))
+    assert not cc.est_symbole(box(0, 0, 2.3, 2.3))           # une vraie petite cuve (réservoir du corpus)
+    assert not cc.est_symbole(box(0, 0, 5, 8)) and not cc.est_symbole(box(0, 0, 9, 9))
+    assert not cc.est_symbole(Point(0, 0).buffer(2.8))       # ≈ 25 m² mais rond : un vrai contour

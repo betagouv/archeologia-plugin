@@ -142,7 +142,8 @@ def test_la_meme_retenue_exclut_un_enclos_et_informe_un_talus():
 
 
 def test_rayon_de_recherche_et_libelles():
-    assert cm.RAYON_RECHERCHE == 15.0          # 25 m tant que les lieux-dits étaient croisés (avant le 2026-11-18)
+    assert cm.RAYON_PROCHE == 15.0          # 25 m tant que les lieux-dits étaient croisés (avant le 2026-11-18)
+    assert cm.RAYON_RECHERCHE == cm.RAYON_PATRIMOINE == 50.0      # le patrimoine se cherche plus loin (2026-11-19)
     assert cm.libelle_source("2026-11-11") == "BD TOPO (IGN), lue le 2026-11-11"
     assert cm.libelle_source("2026-11-12", ["Bâtiments"]) == "Bâtiments (BD TOPO, IGN), lue le 2026-11-12"
     assert cm.libelle_source("2026-11-12", ["Bâtiments", "Surfaces en eau et mares"]) == (
@@ -244,16 +245,25 @@ def test_ruines_chateau_et_moulin_informent_sans_exclure(nature, mot):
 
 
 def test_un_rond_point_exclut_la_detection_posee_dessus():
-    assert cm.champs([autre(cm.ROND_POINT, 0.0, 0.97)], "enclos_circulaires", "s")["contexte_moderne"] == "sur un rond-point"
-    bord = cm.champs([autre(cm.ROND_POINT, 0.0, 0.1)], "enclos", "s")
-    assert bord["contexte_moderne"] is None and bord["contexte_info"] == "rond-point recouvrant 10 % de la détection"
+    dessus = cm.champs([autre(cm.ROND_POINT, 0.0, 0.97)], "enclos_circulaires", "s")
+    assert dessus["contexte_moderne"] == "rond-point recouvrant 97 % de la détection"
+
+
+def test_un_rond_point_exclut_a_partir_de_10_pour_cent():
+    """2026-11-19 : même part que le bâti et l'eau. Un enclos de 25 m de rayon autour d'un rond-point de 15 m
+    n'est recouvert qu'à 36 % : à 50 %, il n'était qu'informé alors que c'est le rond-point lui-même."""
+    autour = cm.champs([autre(cm.ROND_POINT, 0.0, 0.36)], "enclos", "s")
+    assert autour["contexte_moderne"] == "rond-point recouvrant 36 % de la détection"
+    assert cm.champs([autre(cm.ROND_POINT, 0.0, 0.10)], "enclos", "s")["contexte_moderne"] is not None
+    bord = cm.champs([autre(cm.ROND_POINT, 0.0, 0.09)], "enclos", "s")
+    assert bord["contexte_moderne"] is None and bord["contexte_info"] == "rond-point recouvrant 9 % de la détection"
 
 
 def test_les_lieux_dits_ne_sont_plus_croises():
     """Décision du 2026-11-18 : un lieu-dit est une étiquette de carte ; il gonflait le compteur « avec une
     information » (« Forêt Domaniale de Vimy » sur 42 cratères) sans rien apprendre."""
     assert not hasattr(cm, "LIEU_DIT") and "lieu_dit" not in cm.SOURCES_PONCTUELLES
-    assert cm.RAYON_RECHERCHE == 15.0          # le plus grand rayon restant : mares, digues, cours d'eau
+    assert cm.RAYON_PROCHE == 15.0          # le plus grand rayon restant hors patrimoine : mares, digues, cours d'eau
 
 
 def test_l_eau_amenagee_suit_la_meme_part_minimale_que_le_bati():
@@ -355,3 +365,72 @@ def test_ligne_etat_dit_pourquoi_le_croisement_n_est_pas_fait():
     motif = "Contexte moderne non vérifié : la BD TOPO de l'IGN est injoignable (OSError)."
     assert cm.ligne_etat({"total": 0, "motif": motif}) == motif
     assert cm.ligne_etat(None) == "" and cm.ligne_etat({}) == "" and cm.ligne_etat({"total": 0}) == ""
+
+
+def test_les_linéaires_longent_mais_ne_sont_jamais_ecartes():
+    for source, attributs, attendu in (
+            (cm.ROUTE, {"nature": "Chemin"}, "longe un chemin sur 80 % de sa longueur"),
+            (cm.VOIE_FERREE, {"nature": "Voie ferrée principale"}, "longe une voie ferrée sur 80 % de sa longueur"),
+            (cm.TALUS_IGN, {"nature": "Talus"}, "longe un talus recensé par l'IGN sur 80 % de sa longueur"),
+            (cm.CANALISATION, {"nature": "Eau"}, "longe une canalisation sur 80 % de sa longueur"),
+            (cm.COURS_EAU, {"nature": "Ecoulement naturel"}, "longe un cours d'eau sur 80 % de sa longueur")):
+        c = cm.champs([cm.Objet(source, attributs, 0.0, 0.8)], "talus_et_fosses", "s")
+        assert c["contexte_info"] == attendu and c["contexte_moderne"] is None, source
+    # sous le seuil, une ligne qui croise ou effleure ne dit rien
+    assert cm.champs([cm.Objet(cm.ROUTE, {}, 0.0, cm.PART_LONGE - 0.01)], "parcellaire", "s")["contexte_info"] is None
+
+
+def test_qui_consulte_quoi():
+    assert cm.consulte(cm.ROUTE, "chemins_creux") and not cm.consulte(cm.ROUTE, "charbonnieres")
+    assert cm.consulte(cm.COURS_EAU, "chemins_creux") and cm.consulte(cm.COURS_EAU, "charbonnieres")
+    assert not cm.consulte(cm.ROND_POINT, "parcellaire") and cm.consulte(cm.BATIMENT, "parcellaire")
+
+
+# ── 2026-11-19 : le patrimoine connu informe « site connu à proximité », jamais n'écarte ───────────────────
+def test_le_patrimoine_informe_sans_jamais_ecarter():
+    zone = cm.Objet(cm.ZPPA_BRETAGNE, {"COMMUNE": "Rennes", "N_ZONE": "12"}, 0.0, 1.0)
+    for structure in ("enclos", "talus_et_fosses", "charbonnieres"):
+        c = cm.champs([zone], structure, "s")
+        assert c["contexte_moderne"] is None
+        assert c["contexte_info"] == ("site connu : dans la zone de présomption de prescription archéologique "
+                                      "(Rennes, zone 12)")
+    mh = cm.Objet(cm.MONUMENT, {"nomsuplitt": "Château de Fénétrange"}, 32.4)
+    assert cm.champs([mh], "enclos", "s")["contexte_info"] == \
+        "site connu à proximité : monument historique « Château de Fénétrange » à 32 m"
+    assert cm.champs([cm.Objet(cm.MONUMENT, {}, cm.RAYON_PATRIMOINE + 1)], "enclos", "s")["contexte_info"] is None
+
+
+def test_la_source_d_une_information_de_patrimoine_n_est_pas_la_bd_topo():
+    c = cm.champs([cm.Objet(cm.PLU_POINT, {"libelle": "Site gallo-romain"}, 10.0)], "enclos", "",
+                  {cm.PLU_POINT: "Archéologie des PLU (points)"}, "2026-11-19")
+    assert c["contexte_source"] == "Archéologie des PLU (points) (données publiques), lue le 2026-11-19"
+    assert cm.base_de([cm.BATIMENT, cm.EAU]) == "BD TOPO, IGN"
+
+
+# ── 2026-11-19 : exclusions à calibrer (réservoirs, épuration, terrains de sport, parkings) ──────────────────
+def test_exclusions_activees_apres_jugement_de_la_galerie():
+    """2026-11-19 : « tous les cas écartés dans les exemples me semblent bons » (galerie_regles_2026-11-19)."""
+    assert {cm.EPURATION, cm.RESERVOIR, cm.TERRAIN_SPORT} <= cm.EXCLUSIONS_ACTIVES
+    for source in (cm.EPURATION, cm.RESERVOIR, cm.TERRAIN_SPORT):
+        assert cm.champs([cm.Objet(source, {}, 0.0, 0.4)], "enclos", "s")["contexte_moderne"] is not None, source
+        assert cm.champs([cm.Objet(source, {}, 0.0, 0.05)], "enclos", "s")["contexte_moderne"] is None, source
+
+
+def test_les_exclusions_a_calibrer_n_ecartent_pas_tant_qu_elles_ne_sont_pas_activees(monkeypatch):
+    parking = cm.Objet(cm.PARKING, {"nature": "Parking"}, 0.0, 0.4)
+    monkeypatch.setattr(cm, "EXCLUSIONS_ACTIVES", frozenset())
+    c = cm.champs([parking], "enclos", "s")
+    assert c["contexte_moderne"] is None and c["contexte_info"] == "parking recouvrant 40 % de la détection"
+    monkeypatch.setattr(cm, "EXCLUSIONS_ACTIVES", frozenset({cm.PARKING}))
+    assert cm.champs([parking], "enclos", "s")["contexte_moderne"] == "parking recouvrant 40 % de la détection"
+    sous = cm.champs([cm.Objet(cm.PARKING, {}, 0.0, 0.05)], "enclos", "s")
+    assert sous["contexte_moderne"] is None and sous["contexte_info"] == "parking recouvrant 5 % de la détection"
+    assert cm.champs([parking], "parcellaire", "s")["contexte_info"] is None      # jamais les linéaires
+
+
+def test_noms_des_objets_a_calibrer():
+    for source, nature, nom in ((cm.RESERVOIR, "Réservoir d'eau ou château d'eau au sol", "réservoir d'eau au sol"),
+                                (cm.EPURATION, "Station d'épuration", "station d'épuration"),
+                                (cm.EPURATION, "Déchèterie", "déchèterie"),
+                                (cm.TERRAIN_SPORT, "Grand terrain de sport", "grand terrain de sport")):
+        assert cm.phrase(cm.Objet(source, {"nature": nature}, 0.0, 0.3)) == f"{nom} recouvrant 30 % de la détection"

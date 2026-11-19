@@ -79,10 +79,17 @@ def test_marquer_ecrit_les_cinq_champs_sans_toucher_au_reste(run):
     assert (bilan.total, bilan.marquees, bilan.informees) == (4, 2, 1)   # plus de lieu-dit (2026-11-18)
     assert bilan.par_structure == {"enclos": (3, 2, 0), "talus_et_fosses": (1, 0, 1)}
     assert bilan.source == ("Bâtiments · Surfaces en eau et mares · Cours d'eau · Zones d'habitation · "
-                            "Ronds-points (BD TOPO, IGN), lue le 2026-11-11")
+                            "Ronds-points · Routes et chemins · Voies ferrées · Talus, levées et fronts de carrière · "
+                            "Canalisations · Réservoirs, châteaux d'eau, bassins · Zones d'activité et d'intérêt · "
+                            "Terrains de sport · Équipements de transport (parkings, aires, péages) · "
+                            "Monuments historiques · Archéologie des PLU (zones) · "
+                            "Archéologie des PLU (points) (données publiques), lue le 2026-11-11")
     assert bilan.phrase.startswith("Contexte moderne : sur 4 détections, 2 en contexte moderne")
-    # une seule passe par donnée et par carré de 10 km occupé
-    assert len(appels) == 5 * 2          # cinq données depuis le retrait des lieux-dits (2026-11-18)
+    # une seule passe par donnée et par carré de 10 km occupé : cinq données depuis le retrait des lieux-dits
+    # (2026-11-18), plus les quatre des linéaires (2026-11-19) puisque le traitement a un talus, et trois de
+    # patrimoine (les zones de présomption régionales ne sont pas demandées en Moselle), et les quatre
+    # exclusions à calibrer
+    assert len(appels) == 16 * 2
 
 
 def test_marquer_deux_fois_ne_duplique_pas_les_champs(run):
@@ -206,3 +213,17 @@ def test_un_fichier_local_impossible_a_ecrire_ne_bloque_pas_le_marquage(run, mon
     dit = []
     bilan = cg.marquer(run, _faux_wfs([]), journal=dit.append)
     assert bilan.marquees == 2 and any("non enregistrées" in m for m in dit)
+
+
+def test_une_donnee_facultative_en_panne_n_empeche_pas_le_croisement(run):
+    """2026-11-19 : le service des canalisations répond parfois mal ; les données qui ne font qu'informer
+    sont facultatives : leur panne est dite au journal et le reste est écrit."""
+    sain, dit = _faux_wfs([]), []
+
+    def lire(url):
+        if "canalisation" in url:
+            raise OSError("réponse non JSON")
+        return sain(url)
+    bilan = cg.marquer(run, lire, aujourd_hui="2026-11-19", journal=dit.append)
+    assert not bilan.motif and bilan.marquees == 2
+    assert any("« Canalisations » non consultée" in m for m in dit)

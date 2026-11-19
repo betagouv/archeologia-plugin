@@ -63,6 +63,11 @@ CONTEXTE_MODERNE = (
         ("ctx_details_hydro", "Détails hydrographiques (sources, fontaines, lavoirs)",
          _T + "detail_hydrographique", "point", "nature", "", False),
     )),
+    # Ce que le croisement des linéaires consulte (2026-11-19) : talus et levées que l'IGN a déjà relevés.
+    ("Relief recensé par l'IGN", "#8c510a", (
+        ("ctx_talus_ign", "Talus, levées et fronts de carrière", _T + "ligne_orographique", "ligne", "nature", "",
+         False),
+    )),
     ("Énergie et réseaux", "#7b3294", (
         ("ctx_lignes_electriques", "Lignes électriques", _T + "ligne_electrique", "ligne", "", "", False),
         ("ctx_pylones", "Pylônes", _T + "pylone", "point", "", "", False),
@@ -91,6 +96,12 @@ CONTEXTE_MODERNE = (
     ("Patrimoine", "#b2182b", (
         ("monuments_historiques", "Monuments historiques", "wfs_sup:generateur_sup_s", "surface", "nomsuplitt",
          "\"suptype\" = 'ac1'", True),
+        # ceux du croisement (2026-11-19) : repris du catalogue, qui garde leur service et leur clic
+        ("archeo_plu_surfaces", "Archéologie des PLU (zones)", "", "surface", "", "", True),
+        ("archeo_plu_points", "Archéologie des PLU (points)", "", "point", "", "", True),
+        ("bretagne_zppa", "Zones de présomption (Bretagne)", "", "surface", "", "", True),
+        ("aura_zppa", "Zones de présomption (Auvergne-Rhône-Alpes)", "", "surface", "", "", True),
+        ("cvl_zppa", "Zones de présomption (Centre-Val de Loire)", "", "surface", "", "", True),
     )),
 )
 PROPRIETE = "archeologia/fond_public"
