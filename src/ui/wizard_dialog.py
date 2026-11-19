@@ -920,6 +920,18 @@ class WizardDialog(QDialog):
         self.hide()
         self._barrette.montrer()
 
+    def liberer(self) -> None:
+        """Extension déchargée (rechargement, mise à jour, désinstallation) : la barrette, enfant de la
+        fenêtre de QGIS, est supprimée et la fenêtre cachée. Sinon toutes deux survivent à l'extension,
+        et l'horloge de la barrette appelle l'ancien code (recette 77, 2026-11-19). La fenêtre n'est pas
+        détruite : elle peut porter le fil d'un traitement qu'on vient d'annuler."""
+        barrette = getattr(self, "_barrette", None)
+        if barrette is not None:
+            barrette.cacher()
+            barrette.deleteLater()
+            self._barrette = None
+        self.hide()
+
     def rouvrir_depuis_barrette(self) -> None:
         self.show()
         self.raise_()
