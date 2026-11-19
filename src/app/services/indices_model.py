@@ -73,6 +73,11 @@ def mnt_et_qualite_keys() -> List[str]:
     return list(_MNT_ET_QUALITE)
 
 
+def quality_keys() -> List[str]:
+    """Produits de qualité de la donnée (densité, couverture) : le groupe « Qualité de la donnée » de l'arbre."""
+    return [k for k in _MNT_ET_QUALITE if k != "MNT"]
+
+
 def default_products() -> Dict[str, bool]:
     """Aucun produit coché à une ouverture vierge."""
     return {p.key: False for p in _PRODUCTS}
