@@ -656,8 +656,9 @@ class FondsPage(QWidget):
         en contours sans remplissage (comme les détections) et muet au-delà du 1:25 000. ``locale`` : la
         source OGR d'un fichier du poste, lue à la place du service (même dessin)."""
         from qgis.core import (QgsFillSymbol, QgsLineSymbol, QgsMarkerSymbol, QgsPalLayerSettings,
-                               QgsRuleBasedRenderer, QgsSingleSymbolRenderer, QgsVectorLayer,
-                               QgsVectorLayerSimpleLabeling)
+                               QgsRuleBasedRenderer, QgsSingleSymbolRenderer, QgsTextBufferSettings,
+                               QgsTextFormat, QgsVectorLayer, QgsVectorLayerSimpleLabeling)
+        from qgis.PyQt.QtGui import QColor
 
         if locale:
             couche = QgsVectorLayer(locale, fond.nom_couche, "ogr")
@@ -689,6 +690,15 @@ class FondsPage(QWidget):
                 etiquette = QgsPalLayerSettings()
                 etiquette.fieldName = fond.affichage
                 etiquette.isExpression = True
+                # Halo blanc (2026-11-19) : sans lui, le texte gris foncé se perd sur le relief gris.
+                texte = QgsTextFormat()
+                texte.setColor(QColor("#1d1d1d"))
+                halo = QgsTextBufferSettings()
+                halo.setEnabled(True)
+                halo.setSize(1.0)
+                halo.setColor(QColor("#ffffff"))
+                texte.setBuffer(halo)
+                etiquette.setFormat(texte)
                 couche.setLabeling(QgsVectorLayerSimpleLabeling(etiquette))
                 couche.setLabelsEnabled(True)
         else:
